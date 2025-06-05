@@ -7,7 +7,7 @@ class SocketService {
     this.listeners = new Map();
   }
 
-  connect(serverUrl = 'http://192.168.1.89:5001') {
+  connect(serverUrl = 'http://18.193.112.244:5001') {
     if (this.socket && this.isConnected) {
       return Promise.resolve();
     }

@@ -36,6 +36,6 @@ const PORT = config.port;
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
-  console.log(`Server accessible at http://192.168.1.89:${PORT}`);
+  console.log(`Server accessible at http://18.193.112.244:${PORT}`);
   console.log(`Socket.io server ready for connections`);
 });
