@@ -205,11 +205,20 @@ function initializeSocketHandlers(io, rooms, users) {
           // Leave socket room
           socket.leave(user.roomId);
 
-          // Check if room is now completely empty and delete it
-          if (room.users.size === 0) {
-            room.cleanup();
-            rooms.delete(user.roomId);
-            console.log(`Room ${room.name} deleted - no users remaining`);
+          // Don't delete room immediately when users leave
+          // Room will only be deleted after prolonged inactivity timeout
+          console.log(`Room ${room.name} now has ${room.users.size} users remaining`);
+          
+          // Optional: Set a delayed cleanup for rooms with no attendees at all
+          if (room.hasNoAttendees()) {
+            setTimeout(() => {
+              const currentRoom = rooms.get(user.roomId);
+              if (currentRoom && currentRoom.hasNoAttendees()) {
+                currentRoom.cleanup();
+                rooms.delete(user.roomId);
+                console.log(`Room ${room.name} deleted - no attendees for extended period`);
+              }
+            }, config.room.inactiveRoomCleanupDelay || 5 * 60 * 1000); // 5 minutes default
           }
 
           console.log(`User ${user.name} left room ${room.name}`);
@@ -479,19 +488,18 @@ function initializeSocketHandlers(io, rooms, users) {
             users: room.getUsersData()
           });
 
-          // Only clean up rooms after a much longer delay and only if ALL users are offline for a long time
+          // Only clean up rooms after a much longer delay and only if room has no attendees at all
           setTimeout(() => {
             const currentRoom = rooms.get(user.roomId);
-            if (currentRoom && currentRoom.isEmpty()) {
-              // Double check - only delete if room has been empty for the full duration
-              const allOffline = Array.from(currentRoom.users.values()).every(u => u.status === 'offline');
-              if (allOffline) {
-                currentRoom.cleanup();
-                rooms.delete(user.roomId);
-                console.log(`Room ${room.name} deleted due to prolonged inactivity`);
-              }
+            if (currentRoom && currentRoom.hasNoAttendees()) {
+              // Only delete if room is completely empty (no users at all)
+              currentRoom.cleanup();
+              rooms.delete(user.roomId);
+              console.log(`Room ${room.name} deleted - no attendees for extended period`);
+            } else if (currentRoom) {
+              console.log(`Room ${room.name} kept alive - still has ${currentRoom.users.size} attendees`);
             }
-          }, config.room.inactiveRoomCleanupDelay || 30000); // Default 30 seconds instead of immediate
+          }, config.room.inactiveRoomCleanupDelay || 5 * 60 * 1000); // 5 minutes default
         }
         
         // Delete from users tracking after disconnect

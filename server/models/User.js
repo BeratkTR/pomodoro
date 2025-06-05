@@ -103,7 +103,9 @@ class User {
     
     if (this.timerState.mode === 'pomodoro') {
       // Add completed pomodoro time
+      console.log(`TIMER COMPLETE: ${this.name} - Adding ${this.settings.pomodoro}m to totalWorkTime (was ${this.totalWorkTime})`);
       this.totalWorkTime += this.settings.pomodoro;
+      console.log(`TIMER COMPLETE: ${this.name} - totalWorkTime is now ${this.totalWorkTime}m`);
       
       // Update completed sessions
       this.completedSessions++;
@@ -115,7 +117,9 @@ class User {
       this.timerState.currentSession++;
     } else {
       // Add completed break time
+      console.log(`TIMER COMPLETE: ${this.name} - Adding ${this.settings.break}m to totalBreakTime (was ${this.totalBreakTime})`);
       this.totalBreakTime += this.settings.break;
+      console.log(`TIMER COMPLETE: ${this.name} - totalBreakTime is now ${this.totalBreakTime}m`);
       
       // Break completed, switch to pomodoro
       this.timerState.mode = 'pomodoro';
@@ -145,6 +149,7 @@ class User {
   }
 
   resetTimer(io, roomId) {
+    console.log(`RESET TIMER: ${this.name} - Before reset: totalWorkTime=${this.totalWorkTime}, totalBreakTime=${this.totalBreakTime}`);
     this.pauseTimer(io, roomId);
     this.timerState.mode = 'pomodoro';
     this.timerState.timeLeft = this.settings.pomodoro * 60;
@@ -152,11 +157,18 @@ class User {
     this.completedSessions = 0;
     this.currentSessionProgress = 0;
     // Note: Don't reset totalWorkTime and totalBreakTime - they should persist
+    console.log(`RESET TIMER: ${this.name} - After reset: totalWorkTime=${this.totalWorkTime}, totalBreakTime=${this.totalBreakTime}`);
 
     // Broadcast reset to room
     io.to(roomId).emit('user_timer_update', {
       userId: this.id,
       timerState: this.timerState
+    });
+    
+    // Also broadcast full user data to ensure totalWorkTime and totalBreakTime are preserved
+    io.to(roomId).emit('user_updated', {
+      userId: this.id,
+      userData: this.getUserData()
     });
   }
 
@@ -198,7 +210,7 @@ class User {
   }
 
   getUserData() {
-    return {
+    const data = {
       id: this.id,
       name: this.name,
       status: this.status,
@@ -207,10 +219,12 @@ class User {
       tasks: this.tasks,
       completedSessions: this.completedSessions,
       currentSessionProgress: this.currentSessionProgress,
-            totalWorkTime: this.totalWorkTime,
+      totalWorkTime: this.totalWorkTime,
       totalBreakTime: this.totalBreakTime,
       joinedAt: this.joinedAt
     };
+    console.log(`getUserData for ${this.name}: totalWorkTime=${this.totalWorkTime}, totalBreakTime=${this.totalBreakTime}`);
+    return data;
   }
 
   // Clean up method to be called when user disconnects

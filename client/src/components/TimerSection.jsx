@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const TimerSection = ({ timerState, settings, onStart, onPause, onReset, onModeChange }) => {
   const formatTime = (seconds) => {
@@ -6,6 +6,12 @@ const TimerSection = ({ timerState, settings, onStart, onPause, onReset, onModeC
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Update document title with timer
+  useEffect(() => {
+    const timeString = formatTime(timerState.timeLeft);
+    document.title = timeString;
+  }, [timerState.timeLeft]);
 
   const getModeDisplayName = (mode) => {
     switch (mode) {

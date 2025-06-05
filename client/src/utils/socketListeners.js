@@ -171,11 +171,13 @@ export const setupSocketListeners = (
   // User data updates (for tasks, etc.)
   socketService.on('user_updated', (data) => {
     console.log('User data update received:', data)
+    console.log('User data totalWorkTime:', data.userData?.totalWorkTime, 'totalBreakTime:', data.userData?.totalBreakTime)
     const currentUser = getCurrentUser()
     
     if (data.userId === currentUser.id) {
       // This is current user's data update
       console.log('Updating current user data (tasks, etc.)')
+      console.log('Current user before update - totalWorkTime:', currentUser.totalWorkTime, 'totalBreakTime:', currentUser.totalBreakTime)
       setCurrentUser(prev => ({
         ...prev,
         ...data.userData

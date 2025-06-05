@@ -46,6 +46,11 @@ class Room {
     return onlineUsers.length === 0;
   }
 
+  hasNoAttendees() {
+    // Returns true if room has no users at all (neither online nor offline)
+    return this.users.size === 0;
+  }
+
   // Clean up method to be called when room is destroyed
   cleanup() {
     // Clean up all users' timers

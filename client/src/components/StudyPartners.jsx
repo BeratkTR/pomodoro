@@ -62,6 +62,9 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) 
     const accumulatedWorkTime = partner.totalWorkTime || 0;
     const accumulatedBreakTime = partner.totalBreakTime || 0;
     
+    // Debug logging  
+    console.log(`StudyPartners Debug - Partner: ${partner.name}, AccumulatedWork: ${accumulatedWorkTime}, AccumulatedBreak: ${accumulatedBreakTime}`);
+    
     // Calculate current session elapsed time (just the current session, not total)
     let currentSessionTime = 0;
     
@@ -72,9 +75,9 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) 
       currentSessionTime = elapsedSeconds / 60;
     }
     
-    // For display: show current session time for the active mode, accumulated time for the other
-    const displayWorkTime = timerState?.mode === 'pomodoro' ? currentSessionTime : accumulatedWorkTime;
-    const displayBreakTime = timerState?.mode === 'break' ? currentSessionTime : accumulatedBreakTime;
+    // For display: always show accumulated time + current session time if timer is active
+    const displayWorkTime = accumulatedWorkTime + (timerState?.mode === 'pomodoro' && timerState?.isActive ? currentSessionTime : 0);
+    const displayBreakTime = accumulatedBreakTime + (timerState?.mode === 'break' && timerState?.isActive ? currentSessionTime : 0);
     
     return {
       totalWorkTime: formatDuration(displayWorkTime),

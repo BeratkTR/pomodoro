@@ -25,6 +25,8 @@ const ChatWidget = ({
   useEffect(() => {
     if (isOpen) {
       onMarkAsRead()
+      // Scroll to bottom when chat opens
+      scrollToBottom()
       // Focus input when chat opens
       setTimeout(() => chatInputRef.current?.focus(), 100)
     }
