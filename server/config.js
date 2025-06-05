@@ -24,7 +24,7 @@ module.exports = {
     origin: [
       'http://localhost:5173',
       'http://18.193.112.244:80',
-      'http://18.193.112.244',
+      'http://18.193.112.244'
     ],
     methods: ['GET', 'POST'],
     credentials: true
