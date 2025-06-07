@@ -164,7 +164,7 @@ body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   height: fit-content;
-  max-height: 70vh;
+  max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -593,6 +593,40 @@ body {
   transform: translateY(-2px);
 }
 
+.skip-btn {
+  background: rgba(59, 130, 246, 0.8);
+  color: white;
+  border: 2px solid rgba(59, 130, 246, 0.8);
+  padding: 8px 15px;
+  min-width: 40px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.skip-btn:hover {
+  background: rgba(59, 130, 246, 1);
+  border-color: rgba(59, 130, 246, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+}
+
+.skip-to-focus-btn {
+  background: rgba(16, 185, 129, 0.8);
+  color: white;
+  border: 2px solid rgba(16, 185, 129, 0.8);
+  padding: 8px 15px;
+  min-width: 40px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.skip-to-focus-btn:hover {
+  background: rgba(16, 185, 129, 1);
+  border-color: rgba(16, 185, 129, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+}
+
 #setting-reset-btn {
   padding: 12px 20px;
 }
@@ -646,6 +680,38 @@ body {
   font-size: 18px;
   font-weight: 600;
   margin: 0;
+}
+
+.partner-name-display {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.partner-status-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.last-active-tag {
+  font-size: 13px;
+  color: #000000;
+  background: #ffffff;
+  padding: 5px 10px;
+  border-radius: 12px;
+  border: 1px solid #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+}
+
+.last-active-time {
+  font-weight: 700;
 }
 
 .partner-status {
@@ -769,6 +835,14 @@ body {
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
+/* Nothing state (timer not started) - GRAY */
+.timer-mode-display.nothing {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+  box-shadow: none;
+}
+
 /* Offline state */
 .timer-mode-display.offline {
   background: rgba(255, 255, 255, 0.1) !important;
@@ -802,11 +876,17 @@ body {
 }
 
 .partner-timer .timer-status.active {
+  background: rgba(255, 255, 255, 0.2);
   color: #4ade80;
 }
 
 .partner-timer .timer-status.paused {
   color: #fbbf24;
+}
+
+.partner-timer .timer-status.waiting {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .partner-timer .timer-status.offline {
@@ -821,7 +901,7 @@ body {
 .session-progress-section h4 {
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   color: white;
 }
 
@@ -835,15 +915,63 @@ body {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  align-items: flex-end;
+  max-width: 100%;
+  justify-content: flex-start;
+}
+
+.session-bar-container {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .session-bar {
-  width: 30px;
   height: 8px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
   overflow: hidden;
   position: relative;
+  transition: all 0.3s ease;
+  animation: slideIn 0.3s ease-out;
+  cursor: pointer;
+  min-width: 20px;
+  width: auto;
+}
+
+.session-bar:hover {
+  transform: translateY(-2px);
+  height: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.session-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 1000;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.session-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
 }
 
 .session-bar.completed .bar-fill {
@@ -851,25 +979,117 @@ body {
   height: 100%;
   background: #4ade80;
   border-radius: 4px;
+  transition: background-color 0.5s ease;
+}
+
+.session-bar.completed.pomodoro .bar-fill {
+  background: #10b981; /* Green for completed pomodoros */
+  transition: background-color 0.5s ease;
+}
+
+.session-bar.completed.break .bar-fill {
+  background: #3b82f6; /* Blue for completed breaks */
+  transition: background-color 0.5s ease;
 }
 
 .session-bar.current .bar-fill {
   width: 100%;
   height: 100%;
-  background: #fbbf24;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
   animation: pulse 2s ease-in-out infinite;
+  transition: background-color 0.3s ease;
 }
 
 .session-bar.pending .bar-fill {
-  width: 0%;
+  width: 100%;
   height: 100%;
   background: rgba(255, 255, 255, 0.3);
+  transition: background-color 0.3s ease;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+@keyframes slideIn {
+  0% {
+    transform: translateX(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Session Progress Under Timer */
+.timer-section .session-progress-section {
+  margin-top: 20px;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  align-self: flex-start;
+  width: 100%;
+}
+
+.timer-section .session-progress-section h4 {
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.timer-section .session-progress-bars {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.timer-section .session-tooltip {
+  z-index: 1050;
+}
+
+
+
+
+
+/* Session Stats Summary */
+.session-stats {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-summary {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+}
+
+.stats-summary .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stats-summary .stat-item .stat-icon {
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.stats-summary .stat-item .stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.stats-summary .stat-item .stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 

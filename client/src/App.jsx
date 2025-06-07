@@ -8,7 +8,10 @@ import TaskList from './components/TaskList'
 import ChatWidget from './components/ChatWidget'
 import socketService from './services/socketService'
 import apiService from './services/apiService'
+import soundService from './services/soundService'
 import { setupSocketListeners, cleanupSocketListeners } from './utils/socketListeners'
+import useWakeLock from './utils/useWakeLock'
+import faviconManager from './utils/faviconManager'
 import './App.css'
 
 function App() {
@@ -85,6 +88,21 @@ function App() {
   // Sound permission state (hidden for now)
   // const [showSoundPermissionModal, setShowSoundPermissionModal] = useState(false)
 
+  // Wake lock to prevent laptop from sleeping when timer is active
+  const { isSupported: isWakeLockSupported, isWakeLockActive } = useWakeLock(currentUser.timerState?.isActive || false);
+
+  // Update favicon whenever timer state changes
+  useEffect(() => {
+    if (currentUser.timerState && currentUser.settings) {
+      faviconManager.updateFavicon(currentUser.timerState, currentUser.settings);
+    }
+  }, [currentUser.timerState, currentUser.settings]);
+
+  // Initialize favicon on mount
+  useEffect(() => {
+    faviconManager.setStaticFavicon();
+  }, []);
+
   // Save user data to localStorage whenever it changes
   useEffect(() => {
     if (currentUser.id) {
@@ -102,6 +120,9 @@ function App() {
         await socketService.connect()
         setIsConnected(true)
         setConnectionError(null)
+        
+        // Make sound service available for debugging
+        window.soundService = soundService
         
         // Set up socket event listeners
         setupSocketListeners(
@@ -244,7 +265,8 @@ function App() {
         currentSession: 1
       },
       tasks: [],
-      completedSessions: 0
+      completedSessions: 0,
+      sessionHistory: []
     }))
   }
 
@@ -263,6 +285,14 @@ function App() {
 
   const handleModeChange = (mode) => {
     socketService.changeMode(mode)
+  }
+
+  const handleSkipToBreak = () => {
+    socketService.skipToBreak()
+  }
+
+  const handleSkipToFocus = () => {
+    socketService.skipToFocus()
   }
 
   // Settings update function - now for individual user
@@ -436,6 +466,9 @@ function App() {
             onPause={handlePauseTimer}
             onReset={handleResetTimer}
             onModeChange={handleModeChange}
+            onSkipToBreak={handleSkipToBreak}
+            onSkipToFocus={handleSkipToFocus}
+            currentUser={currentUser}
           />
           
           <StudyPartners 

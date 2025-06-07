@@ -7,7 +7,7 @@ class SocketService {
     this.listeners = new Map();
   }
 
-  connect(serverUrl = 'http://18.193.112.244:5001') {
+  connect(serverUrl = 'http://18.159.206.201:5001') {
     if (this.socket && this.isConnected) {
       return Promise.resolve();
     }
@@ -170,6 +170,18 @@ class SocketService {
   changeMode(mode) {
     if (this.socket && this.isConnected) {
       this.socket.emit('change_mode', { mode });
+    }
+  }
+
+  skipToBreak() {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('skip_to_break');
+    }
+  }
+
+  skipToFocus() {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('skip_to_focus');
     }
   }
 

@@ -36,14 +36,45 @@ const SettingsModal = ({ onClose, setPomodoroSettings, currentSettings, onLeaveR
   }, [settings]); // Include settings in dependency array so handleSave has current values
 
   const handleInputChange = (key, value) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: parseInt(value) || 1
-    }));
+    // Allow empty string temporarily for better UX when editing
+    if (value === '') {
+      setSettings(prev => ({
+        ...prev,
+        [key]: ''
+      }));
+    } else {
+      const numValue = parseInt(value);
+      setSettings(prev => ({
+        ...prev,
+        [key]: isNaN(numValue) ? 1 : Math.max(1, numValue)
+      }));
+    }
+  };
+
+  const handleInputBlur = (key, value) => {
+    // Validate and set minimum value when user finishes editing
+    if (value === '' || isNaN(parseInt(value))) {
+      setSettings(prev => ({
+        ...prev,
+        [key]: 1
+      }));
+    } else {
+      const numValue = Math.max(1, parseInt(value));
+      setSettings(prev => ({
+        ...prev,
+        [key]: numValue
+      }));
+    }
   };
 
   const handleSave = () => {
-    setPomodoroSettings(settings);
+    // Ensure all settings are valid numbers before saving
+    const validatedSettings = {
+      pomodoro: settings.pomodoro === '' ? 1 : Math.max(1, parseInt(settings.pomodoro) || 1),
+      break: settings.break === '' ? 1 : Math.max(1, parseInt(settings.break) || 1)
+    };
+    
+    setPomodoroSettings(validatedSettings);
     
     // Update name if it changed
     const currentName = localStorage.getItem('username');
@@ -84,6 +115,7 @@ const SettingsModal = ({ onClose, setPomodoroSettings, currentSettings, onLeaveR
                 max="120"
                 value={settings.pomodoro}
                 onChange={(e) => handleInputChange('pomodoro', e.target.value)}
+                onBlur={(e) => handleInputBlur('pomodoro', e.target.value)}
               />
             </div>
 
@@ -95,6 +127,7 @@ const SettingsModal = ({ onClose, setPomodoroSettings, currentSettings, onLeaveR
                 max="60"
                 value={settings.break}
                 onChange={(e) => handleInputChange('break', e.target.value)}
+                onBlur={(e) => handleInputBlur('break', e.target.value)}
               />
             </div>
           </div>

@@ -85,7 +85,11 @@ const TaskList = ({ tasks = [], onAddTask, onUpdateTask, onDeleteTask, position 
           ) : (
             tasks.map(task => (
               <div key={task.id} className={`task-item ${task.completed ? 'completed' : ''}`}>
-                <div className="task-content">
+                <div 
+                  className="task-content"
+                  onClick={() => handleToggleTask(task.id, task.completed)}
+                  style={{ cursor: readOnly ? 'default' : 'pointer' }}
+                >
                   <input
                     type="checkbox"
                     checked={task.completed}

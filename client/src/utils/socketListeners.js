@@ -32,21 +32,45 @@ export const setupSocketListeners = (
   socketService.on('user_joined', (data) => {
     console.log('User joined:', data.user.name)
     setRoomUsers(data.users)
+    
+    // Play partner join sound when someone joins
+    const currentUser = getCurrentUser()
+    if (data.user.id !== currentUser.id) {
+      soundService.playPartnerJoinSound()
+    }
   })
 
   socketService.on('user_reconnected', (data) => {
     console.log('User reconnected:', data.user.name)
     setRoomUsers(data.users)
+    
+    // Play partner join sound when someone reconnects
+    const currentUser = getCurrentUser()
+    if (data.user.id !== currentUser.id) {
+      soundService.playPartnerJoinSound()
+    }
   })
 
   socketService.on('user_left', (data) => {
     console.log('User left:', data.userId)
     setRoomUsers(data.users)
+    
+    // Play partner leave sound when someone leaves
+    const currentUser = getCurrentUser()
+    if (data.userId !== currentUser.id) {
+      soundService.playPartnerLeaveSound()
+    }
   })
 
   socketService.on('user_disconnected', (data) => {
     console.log('User disconnected:', data.userId)
     setRoomUsers(data.users)
+    
+    // Play partner leave sound when someone disconnects
+    const currentUser = getCurrentUser()
+    if (data.userId !== currentUser.id) {
+      soundService.playPartnerLeaveSound()
+    }
   })
 
   // Individual user timer events
@@ -84,7 +108,10 @@ export const setupSocketListeners = (
       setCurrentUser(prev => ({
         ...prev,
         timerState: data.timerState,
-        completedSessions: data.completedSessions
+        completedSessions: data.completedSessions,
+        sessionHistory: data.sessionHistory,
+        totalWorkTime: data.totalWorkTime,
+        totalBreakTime: data.totalBreakTime
       }))
       
       // Play timer end sound
@@ -110,7 +137,10 @@ export const setupSocketListeners = (
           ? { 
               ...user, 
               timerState: data.timerState,
-              completedSessions: data.completedSessions
+              completedSessions: data.completedSessions,
+              sessionHistory: data.sessionHistory,
+              totalWorkTime: data.totalWorkTime,
+              totalBreakTime: data.totalBreakTime
             }
           : user
       ))

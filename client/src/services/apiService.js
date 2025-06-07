@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://18.193.112.244:5001/api';
+const API_BASE_URL = 'http://18.159.206.201:5001/api';
 
 class ApiService {
   async request(endpoint, options = {}) {

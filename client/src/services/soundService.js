@@ -1,12 +1,16 @@
 // Import audio files
 import messageSound from '../assets/message.mp3'
 import clockSound from '../assets/clock.mp3'
+import onSound from '../assets/on.mp3'
+import offSound from '../assets/off.mp3'
 
 class SoundService {
   constructor() {
     this.sounds = {
       message: null,
-      timerEnd: null
+      timerEnd: null,
+      partnerJoin: null,
+      partnerLeave: null
     }
     this.isEnabled = true
     this.volume = 0.7
@@ -18,6 +22,8 @@ class SoundService {
       // Use imported audio files from assets
       this.sounds.message = new Audio(messageSound)
       this.sounds.timerEnd = new Audio(clockSound)
+      this.sounds.partnerJoin = new Audio(onSound)
+      this.sounds.partnerLeave = new Audio(offSound)
       
       // Set initial volume and preload
       Object.values(this.sounds).forEach(sound => {
@@ -42,6 +48,8 @@ class SoundService {
       console.log('Using fallback synthetic sounds')
       this.sounds.message = this.createSimpleBeep(800, 0.2) // Happy message sound
       this.sounds.timerEnd = this.createSimpleBeep(1000, 0.8) // Alarm sound
+      this.sounds.partnerJoin = this.createSimpleBeep(600, 0.3) // Welcome sound
+      this.sounds.partnerLeave = this.createSimpleBeep(400, 0.5) // Goodbye sound
     } catch (error) {
       console.warn('Failed to initialize fallback sounds:', error)
       this.isEnabled = false
@@ -150,13 +158,88 @@ class SoundService {
     }
   }
 
+  playPartnerJoinSound() {
+    if (!this.isEnabled || !this.sounds.partnerJoin) return
+    
+    try {
+      if (this.sounds.partnerJoin.type === 'webaudio') {
+        this.playWebAudioSound(this.sounds.partnerJoin)
+      } else if (this.sounds.partnerJoin.play) {
+        this.sounds.partnerJoin.play()
+      } else {
+        // Reset audio to beginning and play
+        this.sounds.partnerJoin.currentTime = 0
+        
+        // Clone the audio for overlapping playback
+        const audioClone = this.sounds.partnerJoin.cloneNode()
+        audioClone.volume = this.volume
+        
+        // Clean up the clone after it finishes playing
+        audioClone.addEventListener('ended', () => {
+          audioClone.remove()
+        })
+        
+        audioClone.play().catch(error => {
+          console.warn('Failed to play partner join sound:', error)
+        })
+      }
+    } catch (error) {
+      console.warn('Failed to play partner join sound:', error)
+    }
+  }
+
+  playPartnerLeaveSound() {
+    if (!this.isEnabled || !this.sounds.partnerLeave) return
+    
+    try {
+      if (this.sounds.partnerLeave.type === 'webaudio') {
+        this.playWebAudioSound(this.sounds.partnerLeave)
+      } else if (this.sounds.partnerLeave.play) {
+        this.sounds.partnerLeave.play()
+      } else {
+        // Reset audio to beginning and play
+        this.sounds.partnerLeave.currentTime = 0
+        
+        // Clone the audio for overlapping playback
+        const audioClone = this.sounds.partnerLeave.cloneNode()
+        audioClone.volume = this.volume
+        
+        // Clean up the clone after it finishes playing
+        audioClone.addEventListener('ended', () => {
+          audioClone.remove()
+        })
+        
+        audioClone.play().catch(error => {
+          console.warn('Failed to play partner leave sound:', error)
+        })
+      }
+    } catch (error) {
+      console.warn('Failed to play partner leave sound:', error)
+    }
+  }
+
   // Test method to play sounds for user verification
   testSound(type) {
     if (type === 'message') {
       this.playMessageSound()
     } else if (type === 'timer') {
       this.playTimerEndSound()
+    } else if (type === 'partnerJoin') {
+      this.playPartnerJoinSound()
+    } else if (type === 'partnerLeave') {
+      this.playPartnerLeaveSound()
     }
+  }
+
+  // Test all partner presence sounds
+  testPartnerSounds() {
+    console.log('Testing partner join sound...')
+    this.playPartnerJoinSound()
+    
+    setTimeout(() => {
+      console.log('Testing partner leave sound...')
+      this.playPartnerLeaveSound()
+    }, 1000)
   }
 
   // Create better quality sounds using Web Audio API

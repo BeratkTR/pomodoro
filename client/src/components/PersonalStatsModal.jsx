@@ -1,5 +1,129 @@
 import React, { useState, useEffect } from 'react';
 
+// Session bar component with tooltip - memoized to prevent unnecessary re-renders
+const SessionBar = React.memo(({ 
+  sessionNum, 
+  historyIndex, 
+  sessionHistory, 
+  pomodoroLength, 
+  breakLength, 
+  currentSession, 
+  currentTimerState 
+}) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
+  // Helper function to format tooltip duration for bubble display
+  const formatBubbleDuration = (minutes) => {
+    if (minutes < 1) {
+      const seconds = Math.round(minutes * 60);
+      return `${seconds}s`;
+    }
+    return `${Math.round(minutes)}m`;
+  };
+  
+  // Calculate the width based on duration ranges (tiered system)
+  const calculateBarWidth = (durationMinutes) => {
+    // Tiered scaling system
+    if (durationMinutes <= 5) return 15;      // 0-5 min
+    if (durationMinutes <= 10) return 20;     // 5-10 min
+    if (durationMinutes <= 15) return 25;     // 10-15 min
+    if (durationMinutes <= 20) return 30;     // 15-20 min
+    if (durationMinutes <= 25) return 35;     // 20-25 min
+    if (durationMinutes <= 30) return 40;     // 25-30 min
+    if (durationMinutes <= 35) return 45;     // 30-35 min
+    if (durationMinutes <= 40) return 50;     // 35-40 min
+    if (durationMinutes <= 45) return 55;     // 40-45 min
+    if (durationMinutes <= 50) return 60;     // 45-50 min
+    if (durationMinutes <= 55) return 65;     // 50-55 min
+    if (durationMinutes <= 60) return 70;     // 55-60 min
+    return 75; // 60+ min (maximum)
+  };
+  
+  // Helper function to get the tier description for debugging
+  const getTierDescription = (durationMinutes) => {
+    if (durationMinutes <= 5) return "0-5min";
+    if (durationMinutes <= 10) return "5-10min";
+    if (durationMinutes <= 15) return "10-15min";
+    if (durationMinutes <= 20) return "15-20min";
+    if (durationMinutes <= 25) return "20-25min";
+    if (durationMinutes <= 30) return "25-30min";
+    if (durationMinutes <= 35) return "30-35min";
+    if (durationMinutes <= 40) return "35-40min";
+    if (durationMinutes <= 45) return "40-45min";
+    if (durationMinutes <= 50) return "45-50min";
+    if (durationMinutes <= 55) return "50-55min";
+    if (durationMinutes <= 60) return "55-60min";
+    return "60+ min";
+  };
+  
+  let barClass = 'session-bar';
+  let tooltipText = '';
+  let barWidth = 30; // default width
+  
+  if (historyIndex < sessionHistory.length) {
+    const sessionType = sessionHistory[historyIndex].type;
+    const sessionData = sessionHistory[historyIndex];
+    barClass += ` completed ${sessionType}`;
+    
+    // For completed sessions, use the actual duration that was completed
+    // If duration is stored in session history, use that; otherwise fall back to current settings
+    const sessionDuration = sessionData.duration || (sessionType === 'pomodoro' ? pomodoroLength : breakLength);
+    tooltipText = `${formatBubbleDuration(sessionDuration)}`;
+    barWidth = calculateBarWidth(sessionDuration);
+    console.log(`✅ Personal Stats Completed session ${sessionNum}: type=${sessionType}, actualDuration=${sessionDuration}min, tier=${getTierDescription(sessionDuration)}, width=${barWidth}px`);
+  } else if (sessionNum === currentSession) {
+    // Current session - show as yellow/pending with pulse
+    barClass += ' current';
+    
+    // Calculate elapsed time for current session
+    if (currentTimerState) {
+      const totalTime = currentTimerState.mode === 'pomodoro' ? pomodoroLength * 60 : breakLength * 60;
+      const elapsedSeconds = totalTime - currentTimerState.timeLeft;
+      const elapsedMinutes = elapsedSeconds / 60;
+      
+      tooltipText = `${formatBubbleDuration(elapsedMinutes)}`;
+      barWidth = calculateBarWidth(elapsedMinutes);
+      console.log(`⏱️ Personal Stats Current session ${sessionNum}: elapsed=${elapsedMinutes.toFixed(1)}min, tier=${getTierDescription(elapsedMinutes)}, width=${barWidth}px`);
+    } else {
+      tooltipText = `0m`;
+      barWidth = calculateBarWidth(0.5); // Show very small bar for 0 time
+      console.log(`⭕ Personal Stats Current session ${sessionNum}: not started, tier=${getTierDescription(0.5)}, width=${barWidth}px`);
+    }
+  } else {
+    // Future sessions - show as grey pending
+    barClass += ' pending';
+    tooltipText = `Pending`;
+    // Use a small default width for pending sessions
+    const pendingDuration = pomodoroLength * 0.3;
+    barWidth = calculateBarWidth(pendingDuration); // 30% of expected duration for pending
+    console.log(`⏳ Personal Stats Pending session ${sessionNum}: expected=${pomodoroLength}min (30% = ${pendingDuration.toFixed(1)}min), tier=${getTierDescription(pendingDuration)}, width=${barWidth}px`);
+  }
+  
+  return (
+    <div 
+      className="session-bar-container"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <div 
+        className={barClass}
+        style={{ 
+          width: `${barWidth}px`,
+          minWidth: `${barWidth}px`,
+          maxWidth: `${barWidth}px`
+        }}
+      >
+        <div className="bar-fill"></div>
+      </div>
+      {showTooltip && (
+        <div className="session-tooltip">
+          {tooltipText}
+        </div>
+      )}
+    </div>
+  );
+});
+
 const PersonalStatsModal = ({ onClose, currentUser }) => {
   // State to force re-render for live updates
   const [, setUpdateTrigger] = useState(0);
@@ -70,12 +194,12 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
       currentSessionTime = elapsedSeconds / 60;
     }
     
-    // For display: always show accumulated time + current session time if timer is active
-    const displayWorkTime = accumulatedWorkTime + (timerState?.mode === 'pomodoro' && timerState?.isActive ? currentSessionTime : 0);
-    const displayBreakTime = accumulatedBreakTime + (timerState?.mode === 'break' && timerState?.isActive ? currentSessionTime : 0);
+    // For display: always show accumulated time + current session time (whether active or paused)
+    const displayWorkTime = accumulatedWorkTime + (timerState?.mode === 'pomodoro' ? currentSessionTime : 0);
+    const displayBreakTime = accumulatedBreakTime + (timerState?.mode === 'break' ? currentSessionTime : 0);
     
     // Debug logging for display calculations
-    console.log(`PersonalStats Display - WorkTime: ${displayWorkTime} (${accumulatedWorkTime} + ${timerState?.mode === 'pomodoro' && timerState?.isActive ? currentSessionTime : 0}), BreakTime: ${displayBreakTime}`);
+    console.log(`PersonalStats Display - WorkTime: ${displayWorkTime} (${accumulatedWorkTime} + ${timerState?.mode === 'pomodoro' ? currentSessionTime : 0}), BreakTime: ${displayBreakTime}`);
     
     return {
       totalWorkTime: formatDuration(displayWorkTime),
@@ -90,26 +214,31 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
   };
 
   const renderSessionBars = (completedSessions, currentSession) => {
-    const totalBars = Math.max(8, currentSession); // Show at least 8 bars
+    // Only show bars up to current session, starting with 1 bar minimum
+    const totalBars = Math.max(1, currentSession);
+    const sessionHistory = currentUser?.sessionHistory || [];
+    
+    // Get timer settings
+    const pomodoroLength = currentUser?.settings?.pomodoro || 50;
+    const breakLength = currentUser?.settings?.break || 10;
     
     return (
       <div className="session-progress-bars">
         {Array.from({ length: totalBars }, (_, index) => {
           const sessionNum = index + 1;
-          let barClass = 'session-bar';
-          
-          if (sessionNum <= completedSessions) {
-            barClass += ' completed';
-          } else if (sessionNum === currentSession) {
-            barClass += ' current';
-          } else {
-            barClass += ' pending';
-          }
+          const historyIndex = index;
           
           return (
-            <div key={sessionNum} className={barClass}>
-              <div className="bar-fill"></div>
-            </div>
+            <SessionBar 
+              key={sessionNum}
+              sessionNum={sessionNum}
+              historyIndex={historyIndex}
+              sessionHistory={sessionHistory}
+              pomodoroLength={pomodoroLength}
+              breakLength={breakLength}
+              currentSession={currentSession}
+              currentTimerState={currentUser?.timerState}
+            />
           );
         })}
       </div>
@@ -188,9 +317,6 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
 
             <div className="session-progress-section">
               <h4>Session Progress</h4>
-              <div className="progress-info">
-                <span>Session {personalStats.currentSession} • {personalStats.completedSessions} completed</span>
-              </div>
               {renderSessionBars(personalStats.completedSessions, personalStats.currentSession)}
             </div>
           </div>

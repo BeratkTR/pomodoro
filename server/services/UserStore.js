@@ -12,6 +12,7 @@ class UserStore {
       // Update socket connection
       existingUser.socketId = socketId;
       existingUser.status = 'online';
+      existingUser.lastActivity = Date.now(); // Update activity when coming online
       console.log(`Retrieved persistent user: ${existingUser.name}`);
       return existingUser;
     }
@@ -43,6 +44,10 @@ class UserStore {
       user.completedSessions = userData.completedSessions;
     }
     
+    if (userData.sessionHistory) {
+      user.sessionHistory = userData.sessionHistory;
+    }
+    
     // Restore accumulated work and break times
     if (userData.totalWorkTime !== undefined) {
       user.totalWorkTime = userData.totalWorkTime;
@@ -50,6 +55,11 @@ class UserStore {
     
     if (userData.totalBreakTime !== undefined) {
       user.totalBreakTime = userData.totalBreakTime;
+    }
+    
+    // Restore lastActivity if available
+    if (userData.lastActivity !== undefined) {
+      user.lastActivity = userData.lastActivity;
     }
     
     if (userData.timerState) {
@@ -80,6 +90,7 @@ class UserStore {
     if (this.persistentUsers.has(userId)) {
       const user = this.persistentUsers.get(userId);
       user.status = 'offline';
+      user.lastActivity = Date.now(); // Update last activity time when going offline
       user.socketId = null;
       // Pause timer if active
       if (user.timerState.isActive) {

@@ -304,6 +304,44 @@ function initializeSocketHandlers(io, rooms, users) {
       userInstance.changeMode(data.mode, io, user.roomId);
     });
 
+    socket.on('skip_to_break', () => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      const userInstance = room.getUser(user.id);
+      if (!userInstance) return;
+
+      // Only allow skip to break for online users
+      if (userInstance.status !== 'online') {
+        console.log(`Blocked skip to break for offline user ${userInstance.name}`);
+        return;
+      }
+
+      userInstance.skipToBreak(io, user.roomId);
+    });
+
+    socket.on('skip_to_focus', () => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      const userInstance = room.getUser(user.id);
+      if (!userInstance) return;
+
+      // Only allow skip to focus for online users
+      if (userInstance.status !== 'online') {
+        console.log(`Blocked skip to focus for offline user ${userInstance.name}`);
+        return;
+      }
+
+      userInstance.skipToFocus(io, user.roomId);
+    });
+
     // Handle individual settings update  ----------------------------------------------
     socket.on('update_settings', (newSettings) => {
       const user = users.get(socket.id);

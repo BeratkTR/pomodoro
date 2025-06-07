@@ -33,6 +33,9 @@ class User {
     this.completedSessions = 0;
     this.currentSessionProgress = 0;
     
+    // Session history to track types of completed sessions
+    this.sessionHistory = []; // Array of {type: 'pomodoro'|'break', completedAt: timestamp}
+    
     // Accumulated time tracking (in minutes)
     this.totalWorkTime = 0;
     this.totalBreakTime = 0;
@@ -107,7 +110,14 @@ class User {
       this.totalWorkTime += this.settings.pomodoro;
       console.log(`TIMER COMPLETE: ${this.name} - totalWorkTime is now ${this.totalWorkTime}m`);
       
-      // Update completed sessions
+      // Add to session history
+      this.sessionHistory.push({
+        type: 'pomodoro',
+        completedAt: Date.now(),
+        duration: this.settings.pomodoro // Store the actual duration completed
+      });
+      
+      // Update completed sessions (only count pomodoros for backward compatibility)
       this.completedSessions++;
       this.currentSessionProgress = 0;
 
@@ -121,9 +131,17 @@ class User {
       this.totalBreakTime += this.settings.break;
       console.log(`TIMER COMPLETE: ${this.name} - totalBreakTime is now ${this.totalBreakTime}m`);
       
+      // Add to session history
+      this.sessionHistory.push({
+        type: 'break',
+        completedAt: Date.now(),
+        duration: this.settings.break // Store the actual duration completed
+      });
+      
       // Break completed, switch to pomodoro
       this.timerState.mode = 'pomodoro';
       this.timerState.timeLeft = this.settings.pomodoro * 60;
+      this.timerState.currentSession++;
       this.currentSessionProgress = 0;
     }
 
@@ -131,7 +149,10 @@ class User {
     io.to(roomId).emit('user_timer_complete', {
       userId: this.id,
       timerState: this.timerState,
-      completedSessions: this.completedSessions
+      completedSessions: this.completedSessions,
+      sessionHistory: this.sessionHistory,
+      totalWorkTime: this.totalWorkTime,
+      totalBreakTime: this.totalBreakTime
     });
 
     // Auto-start next session if enabled and user is online
@@ -150,13 +171,31 @@ class User {
 
   resetTimer(io, roomId) {
     console.log(`RESET TIMER: ${this.name} - Before reset: totalWorkTime=${this.totalWorkTime}, totalBreakTime=${this.totalBreakTime}`);
+    
+    // Save any elapsed time from current session before resetting
+    if (this.timerState.isActive || this.timerState.timeLeft < (this.timerState.mode === 'pomodoro' ? this.settings.pomodoro * 60 : this.settings.break * 60)) {
+      const totalTime = this.timerState.mode === 'pomodoro' ? this.settings.pomodoro * 60 : this.settings.break * 60;
+      const elapsedTime = totalTime - this.timerState.timeLeft;
+      const elapsedMinutes = elapsedTime / 60;
+      
+      if (elapsedMinutes > 0) {
+        if (this.timerState.mode === 'pomodoro') {
+          console.log(`RESET TIMER: ${this.name} - Saving ${elapsedMinutes}m of current work session`);
+          this.totalWorkTime += elapsedMinutes;
+        } else {
+          console.log(`RESET TIMER: ${this.name} - Saving ${elapsedMinutes}m of current break session`);
+          this.totalBreakTime += elapsedMinutes;
+        }
+      }
+    }
+    
     this.pauseTimer(io, roomId);
     this.timerState.mode = 'pomodoro';
     this.timerState.timeLeft = this.settings.pomodoro * 60;
-    this.timerState.currentSession = 1;
-    this.completedSessions = 0;
+    // Only reset current session timer, keep session history and total times
     this.currentSessionProgress = 0;
-    // Note: Don't reset totalWorkTime and totalBreakTime - they should persist
+    
+    // Note: Keep completedSessions, sessionHistory, totalWorkTime and totalBreakTime - they should persist
     console.log(`RESET TIMER: ${this.name} - After reset: totalWorkTime=${this.totalWorkTime}, totalBreakTime=${this.totalBreakTime}`);
 
     // Broadcast reset to room
@@ -165,7 +204,7 @@ class User {
       timerState: this.timerState
     });
     
-    // Also broadcast full user data to ensure totalWorkTime and totalBreakTime are preserved
+    // Also broadcast full user data to ensure all accumulated data is preserved
     io.to(roomId).emit('user_updated', {
       userId: this.id,
       userData: this.getUserData()
@@ -186,6 +225,78 @@ class User {
     io.to(roomId).emit('user_timer_update', {
       userId: this.id,
       timerState: this.timerState
+    });
+  }
+
+  skipToBreak(io, roomId) {
+    // Only allow skipping to break when in pomodoro mode
+    if (this.timerState.mode !== 'pomodoro') {
+      return;
+    }
+
+    // Calculate elapsed work time in current session
+    const totalPomodoroTime = this.settings.pomodoro * 60;
+    const elapsedTime = totalPomodoroTime - this.timerState.timeLeft;
+    const elapsedMinutes = elapsedTime / 60;
+
+    console.log(`SKIP TO BREAK: ${this.name} - Adding ${elapsedMinutes}m of partial work to totalWorkTime (was ${this.totalWorkTime})`);
+    
+    // Add the partial work time to total work time
+    this.totalWorkTime += elapsedMinutes;
+    
+    console.log(`SKIP TO BREAK: ${this.name} - totalWorkTime is now ${this.totalWorkTime}m`);
+
+    // Pause the timer and switch to break mode
+    this.pauseTimer(io, roomId);
+    this.timerState.mode = 'break';
+    this.timerState.timeLeft = this.settings.break * 60;
+
+    // Broadcast the update to include the new totalWorkTime
+    io.to(roomId).emit('user_timer_update', {
+      userId: this.id,
+      timerState: this.timerState
+    });
+
+    // Also broadcast full user data to ensure totalWorkTime is updated
+    io.to(roomId).emit('user_updated', {
+      userId: this.id,
+      userData: this.getUserData()
+    });
+  }
+
+  skipToFocus(io, roomId) {
+    // Only allow skipping to focus when in break mode
+    if (this.timerState.mode !== 'break') {
+      return;
+    }
+
+    // Calculate elapsed break time in current session
+    const totalBreakTime = this.settings.break * 60;
+    const elapsedTime = totalBreakTime - this.timerState.timeLeft;
+    const elapsedMinutes = elapsedTime / 60;
+
+    console.log(`SKIP TO FOCUS: ${this.name} - Adding ${elapsedMinutes}m of partial break to totalBreakTime (was ${this.totalBreakTime})`);
+    
+    // Add the partial break time to total break time
+    this.totalBreakTime += elapsedMinutes;
+    
+    console.log(`SKIP TO FOCUS: ${this.name} - totalBreakTime is now ${this.totalBreakTime}m`);
+
+    // Pause the timer and switch to pomodoro mode
+    this.pauseTimer(io, roomId);
+    this.timerState.mode = 'pomodoro';
+    this.timerState.timeLeft = this.settings.pomodoro * 60;
+
+    // Broadcast the update to include the new totalBreakTime
+    io.to(roomId).emit('user_timer_update', {
+      userId: this.id,
+      timerState: this.timerState
+    });
+
+    // Also broadcast full user data to ensure totalBreakTime is updated
+    io.to(roomId).emit('user_updated', {
+      userId: this.id,
+      userData: this.getUserData()
     });
   }
 
@@ -218,10 +329,12 @@ class User {
       settings: this.settings,
       tasks: this.tasks,
       completedSessions: this.completedSessions,
+      sessionHistory: this.sessionHistory,
       currentSessionProgress: this.currentSessionProgress,
       totalWorkTime: this.totalWorkTime,
       totalBreakTime: this.totalBreakTime,
-      joinedAt: this.joinedAt
+      joinedAt: this.joinedAt,
+      lastActivity: this.lastActivity
     };
     console.log(`getUserData for ${this.name}: totalWorkTime=${this.totalWorkTime}, totalBreakTime=${this.totalBreakTime}`);
     return data;
