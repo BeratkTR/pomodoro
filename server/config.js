@@ -2,7 +2,7 @@ module.exports = {
   port: process.env.PORT || 5001,
   cors: {
     origin: [
-      "http://localhost:80",
+      "http://18.159.206.201:80",
     ],
     methods: ["GET", "POST"]
   },
@@ -21,7 +21,7 @@ module.exports = {
   },
   corsOptions: {
     origin: [
-      'http://localhost:443',
+      'http://18.159.206.201:443',
     ],
     methods: ['GET', 'POST'],
     credentials: true
