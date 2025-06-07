@@ -3,6 +3,7 @@ module.exports = {
   cors: {
     origin: [
       "http://18.159.206.201:80",
+      "http://18.159.206.201:5001 ",
     ],
     methods: ["GET", "POST"]
   },
@@ -21,7 +22,7 @@ module.exports = {
   },
   corsOptions: {
     origin: [
-      'http://18.159.206.201:443',
+      'http://18.159.206.201:80',
     ],
     methods: ['GET', 'POST'],
     credentials: true

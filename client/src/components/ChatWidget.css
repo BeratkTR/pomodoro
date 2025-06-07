@@ -74,11 +74,11 @@
   right: 0;
   width: 380px;
   height: 500px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(30, 30, 30, 0.95);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -141,7 +141,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(20, 20, 20, 0.3);
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -149,19 +149,19 @@
 }
 
 .chat-messages::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: rgba(186, 47, 47, 0.5);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
 }
 
 .no-messages {
   text-align: center;
   padding: 40px 20px;
-  color: rgba(0, 0, 0, 0.6);
+  color: rgba(255, 255, 255, 0.6);
   font-style: italic;
 }
 
@@ -187,12 +187,12 @@
 
 .message-content {
   max-width: 75%;
-  background: white;
+  background: rgba(50, 50, 50, 0.9);
   border-radius: 12px;
   padding: 8px 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  color: #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
 }
 
 .own-message .message-content {
@@ -206,7 +206,7 @@
 }
 
 .partner-message .message-text {
-  color: #333 !important;
+  color: #e0e0e0 !important;
 }
 
 .message-header {
@@ -287,19 +287,19 @@
 .chat-input-form {
   display: flex;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(20, 20, 20, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   gap: 8px;
 }
 
 .chat-input {
   flex: 1;
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: rgba(40, 40, 40, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 14px;
-  color: #333;
+  color: #e0e0e0;
   outline: none;
   transition: border-color 0.2s ease;
 }
@@ -310,7 +310,7 @@
 }
 
 .chat-input::placeholder {
-  color: #999;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .send-btn {
