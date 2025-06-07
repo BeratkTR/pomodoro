@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 80,
-    host: '0.0.0.0'
+    host: '0.0.0.0',
+    allowedHosts: ['beratkaragol.xyz', 'www.beratkaragol.xyz']
   }
 })
