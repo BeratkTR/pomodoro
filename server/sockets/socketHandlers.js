@@ -475,7 +475,11 @@ function initializeSocketHandlers(io, rooms, users) {
         userId: user.id,
         userName: userInstance.name,
         timestamp: new Date().toISOString(),
-        roomId: user.roomId
+        roomId: user.roomId,
+        status: {
+          sent: true,
+          read: false
+        }
       };
 
       // Add message to room's chat history
@@ -492,7 +496,43 @@ function initializeSocketHandlers(io, rooms, users) {
       // Broadcast message to all users in the room
       io.to(user.roomId).emit('chat_message', message);
 
+      // Message is sent and delivered immediately
+
       console.log(`Chat message in room ${room.name} from ${userInstance.name}: ${data.text}`);
+    });
+
+    // Handle message read status  ----------------------------------------------
+    socket.on('mark_messages_read', (data) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      // Mark all messages from other users as read
+      if (room.chatHistory) {
+        let hasUpdates = false;
+        room.chatHistory.forEach(message => {
+          // Only mark messages from other users as read
+          if (message.userId !== user.id && !message.status.read) {
+            message.status.read = true;
+            hasUpdates = true;
+            
+            // Notify the sender that their message was read
+            const senderUser = Array.from(room.users.values()).find(u => u.id === message.userId);
+            if (senderUser && senderUser.socketId) {
+              io.to(senderUser.socketId).emit('message_status_update', {
+                messageId: message.id,
+                status: message.status
+              });
+            }
+          }
+        });
+
+        if (hasUpdates) {
+          console.log(`User ${user.id} marked messages as read in room ${room.name}`);
+        }
+      }
     });
 
     // Handle disconnect  ----------------------------------------------

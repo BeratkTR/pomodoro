@@ -10,7 +10,7 @@ import socketService from './services/socketService'
 import apiService from './services/apiService'
 import soundService from './services/soundService'
 import { setupSocketListeners, cleanupSocketListeners } from './utils/socketListeners'
-import useWakeLock from './utils/useWakeLock'
+import useScreenWake from './utils/useScreenWake'
 import faviconManager from './utils/faviconManager'
 import './App.css'
 
@@ -88,8 +88,8 @@ function App() {
   // Sound permission state (hidden for now)
   // const [showSoundPermissionModal, setShowSoundPermissionModal] = useState(false)
 
-  // Wake lock to prevent laptop from sleeping when timer is active
-  const { isSupported: isWakeLockSupported, isWakeLockActive } = useWakeLock(currentUser.timerState?.isActive || false);
+  // Screen wake to prevent laptop from sleeping when timer is active using NoSleep.js
+  const { isSupported: isWakeLockSupported, isWakeLockActive } = useScreenWake(currentUser.timerState?.isActive || false);
 
   // Update favicon whenever timer state changes
   useEffect(() => {

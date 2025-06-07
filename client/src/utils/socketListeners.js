@@ -254,6 +254,15 @@ export const setupSocketListeners = (
     setChatMessages(data.messages || [])
   })
 
+  socketService.on('message_status_update', (data) => {
+    console.log('Received message status update:', data)
+    setChatMessages(prev => prev.map(message => 
+      message.id === data.messageId 
+        ? { ...message, status: data.status }
+        : message
+    ))
+  })
+
   socketService.on('error', (data) => {
     console.error('Socket error:', data.message)
     
@@ -291,5 +300,6 @@ export const cleanupSocketListeners = () => {
   socketService.off('user_updated')
   socketService.off('chat_message')
   socketService.off('chat_history')
+  socketService.off('message_status_update')
   socketService.off('error')
 } 

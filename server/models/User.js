@@ -212,6 +212,23 @@ class User {
   }
 
   changeMode(mode, io, roomId) {
+    // Save any elapsed time from current session before changing mode
+    if (this.timerState.isActive || this.timerState.timeLeft < (this.timerState.mode === 'pomodoro' ? this.settings.pomodoro * 60 : this.settings.break * 60)) {
+      const totalTime = this.timerState.mode === 'pomodoro' ? this.settings.pomodoro * 60 : this.settings.break * 60;
+      const elapsedTime = totalTime - this.timerState.timeLeft;
+      const elapsedMinutes = elapsedTime / 60;
+      
+      if (elapsedMinutes > 0) {
+        if (this.timerState.mode === 'pomodoro') {
+          console.log(`CHANGE MODE: ${this.name} - Saving ${elapsedMinutes}m of current work session`);
+          this.totalWorkTime += elapsedMinutes;
+        } else {
+          console.log(`CHANGE MODE: ${this.name} - Saving ${elapsedMinutes}m of current break session`);
+          this.totalBreakTime += elapsedMinutes;
+        }
+      }
+    }
+
     this.pauseTimer(io, roomId);
     this.timerState.mode = mode;
     
@@ -225,6 +242,12 @@ class User {
     io.to(roomId).emit('user_timer_update', {
       userId: this.id,
       timerState: this.timerState
+    });
+
+    // Also broadcast full user data to ensure accumulated times are updated
+    io.to(roomId).emit('user_updated', {
+      userId: this.id,
+      userData: this.getUserData()
     });
   }
 

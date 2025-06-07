@@ -216,6 +216,12 @@
   margin-bottom: 4px;
 }
 
+.message-time-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .message-author {
   font-size: 12px;
   font-weight: 600;
@@ -234,6 +240,47 @@
   color: inherit;
   margin: 0;
   padding: 0;
+}
+
+/* Message Status Icons */
+.message-status {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  opacity: 1;
+  transition: all 0.2s ease;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.message-status svg {
+  width: 16px;
+  height: 16px;
+}
+
+.message-status.sent svg path {
+  stroke: #666;
+  stroke-width: 2.5;
+}
+
+.message-status.read svg path {
+  stroke: #2196F3;
+  stroke-width: 2.5;
+}
+
+/* Ensure status icons are visible in own messages */
+.own-message .message-status {
+  opacity: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.own-message .message-status.sent svg path {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2.5;
+}
+
+.own-message .message-status.read svg path {
+  stroke: #64B5F6;
+  stroke-width: 2.5;
 }
 
 /* Chat Input Form */

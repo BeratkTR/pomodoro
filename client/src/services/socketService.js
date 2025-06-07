@@ -7,7 +7,7 @@ class SocketService {
     this.listeners = new Map();
   }
 
-  connect(serverUrl = 'http://18.159.206.201:5001') {
+  connect(serverUrl = 'http://localhost:5001') {
     if (this.socket && this.isConnected) {
       return Promise.resolve();
     }
@@ -101,6 +101,10 @@ class SocketService {
 
     this.socket.on('chat_history', (data) => {
       this.emit('chat_history', data);
+    });
+
+    this.socket.on('message_status_update', (data) => {
+      this.emit('message_status_update', data);
     });
 
     // Error events
@@ -221,6 +225,12 @@ class SocketService {
   sendMessage(messageText) {
     if (this.socket && this.isConnected) {
       this.socket.emit('send_message', { text: messageText });
+    }
+  }
+
+  markMessagesAsRead() {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('mark_messages_read');
     }
   }
 

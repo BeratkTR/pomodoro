@@ -62,12 +62,20 @@ const SessionBar = ({
     
     tooltipContent = formatBubbleDuration(duration);
   } else if (isCurrent && currentTimerState) {
-    // Current session - calculate progress
-    const expectedDuration = sessionType === 'pomodoro' ? pomodoroLength : breakLength;
+    // Current session - calculate progress using the current timer mode
+    const expectedDuration = currentTimerState.mode === 'pomodoro' ? pomodoroLength : breakLength;
     const totalTime = expectedDuration * 60;
     const elapsedTime = totalTime - currentTimerState.timeLeft;
-    duration = elapsedTime / 60;
-    progress = elapsedTime / totalTime;
+    
+    // Only show elapsed time if the timer has actually been started (timeLeft is less than full duration)
+    if (currentTimerState.timeLeft < totalTime) {
+      duration = Math.max(0, elapsedTime / 60); // Ensure duration is not negative
+      progress = Math.max(0, elapsedTime / totalTime); // Ensure progress is not negative
+    } else {
+      // Timer hasn't been started yet
+      duration = 0;
+      progress = 0;
+    }
     
     tooltipContent = formatBubbleDuration(duration);
   } else {

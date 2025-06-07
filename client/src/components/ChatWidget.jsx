@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './ChatWidget.css'
+import socketService from '../services/socketService'
 
 const ChatWidget = ({ 
   isOpen, 
@@ -55,6 +56,8 @@ const ChatWidget = ({
   useEffect(() => {
     if (isOpen) {
       onMarkAsRead()
+      // Mark messages as read on server
+      socketService.markMessagesAsRead()
       // Always scroll to bottom when chat opens
       setTimeout(() => {
         scrollToBottom()
@@ -83,6 +86,39 @@ const ChatWidget = ({
       minute: '2-digit',
       hour12: false 
     })
+  }
+
+  const renderMessageStatus = (message) => {
+    // Only show status for own messages
+    if (message.userId !== currentUser.id) {
+      return null
+    }
+
+    // Default status for messages without status field (backward compatibility)
+    const status = message.status || { sent: true, read: false }
+    const { sent, read } = status
+
+    if (read) {
+      // Blue tick for read messages
+      return (
+        <span className="message-status read" title="Read">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 8L6 12L14 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </span>
+      )
+    } else if (sent) {
+      // Gray tick for sent but not read messages
+      return (
+        <span className="message-status sent" title="Sent">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 8L6 12L14 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </span>
+      )
+    }
+
+    return null
   }
 
   return (
@@ -134,9 +170,12 @@ const ChatWidget = ({
                         <span className="message-author">
                           {message.userId === currentUser.id ? 'You' : message.userName}
                         </span>
-                        <span className="message-time">
-                          {formatTime(message.timestamp)}
-                        </span>
+                        <div className="message-time-status">
+                          <span className="message-time">
+                            {formatTime(message.timestamp)}
+                          </span>
+                          {renderMessageStatus(message)}
+                        </div>
                       </div>
                       <div className="message-text">
                         {message.text || '[Empty message]'}
