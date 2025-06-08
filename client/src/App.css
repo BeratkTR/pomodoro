@@ -128,25 +128,10 @@ body {
   justify-content: center;
 }
 
-/* Solo mode - Wider center section */
+/* Solo mode - Use same layout as with partner */
 .main-container.solo {
-  grid-template-columns: 400px 1fr 400px;
-  max-width: 1500px;
-}
-
-.main-container.solo .timer-and-partner-section {
-  min-width: 600px;
-  max-width: 900px;
-  justify-self: center;
-}
-
-/* Solo mode - Make timer bigger */
-.main-container.solo .timer-display {
-  font-size: 140px;
-}
-
-.main-container.solo .timer-section {
-  padding: 50px;
+  grid-template-columns: 380px 1fr 380px;
+  max-width: 1600px;
 }
 
 /* With partner - Standard three column layout */

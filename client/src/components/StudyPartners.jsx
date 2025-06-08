@@ -340,6 +340,9 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) 
 
   const partnerStats = partner ? calculatePartnerStats(partner) : null;
 
+  // Calculate current user's stats for solo mode
+  const currentUserStats = currentUser ? calculatePartnerStats(currentUser) : null;
+
   return (
     <div className="study-partners">
       {partner ? (
@@ -400,17 +403,50 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) 
            </div>
         </div>
       ) : (
-        <div className="no-partner">
-          <div className="waiting-for-partner">
-            <h4>Waiting for study partner...</h4>
-            <p>Share the room ID with a friend to start studying together!</p>
-            {currentRoom && (
-              <div className="room-id-display">
-                <span className="room-id-label">Room ID:</span>
-                <span className="room-id">{currentRoom.id}</span>
+        <div className="partner-stats-section">
+          <div className="partner-header">
+            <div className="partner-name-display"><span style={{marginRight: '6px'}}>📊</span>Your Progress</div>
+            <div className="partner-status-container">
+              <div className="waiting-for-partner">
+                <h4>Waiting for study partner...</h4>
+                <p>Share the room ID with a friend!</p>
+                {currentRoom && (
+                  <div className="room-id-display">
+                    <span className="room-id-label">Room ID:</span>
+                    <span className="room-id">{currentRoom.id}</span>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
+
+          {currentUserStats && (
+            <div className="stats-grid">
+              <div className="stat-card work-time">
+                <div className="stat-icon">📚</div>
+                <div className="stat-content">
+                  <div className="stat-value">{currentUserStats.totalWorkTime}</div>
+                  <div className="stat-label">Total Work Time</div>
+                </div>
+              </div>
+
+              <div className="stat-card break-time">
+                <div className="stat-icon">☕</div>
+                <div className="stat-content">
+                  <div className="stat-value">{currentUserStats.totalBreakTime}</div>
+                  <div className="stat-label">Total Break Time</div>
+                </div>
+              </div>
+
+              <div className="stat-card sessions">
+                <div className="stat-icon">🎯</div>
+                <div className="stat-content">
+                  <div className="stat-value">{currentUserStats.completedSessions}</div>
+                  <div className="stat-label">Completed Sessions</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
