@@ -19,6 +19,7 @@ router.get('/data', requireAdmin, (req, res) => {
     const { rooms, users } = req.app.locals;
     
     console.log('Admin data request - Rooms count:', rooms.size, 'Users count:', users.size);
+    console.log('Persistent users count:', userStore.persistentUsers.size);
     
     // Convert Maps to arrays for JSON response
     const roomsData = Array.from(rooms.values()).map(room => {
@@ -36,26 +37,55 @@ router.get('/data', requireAdmin, (req, res) => {
       };
     });
 
-    const usersData = Array.from(users.values()).map(user => {
-      console.log('Processing user:', user.id, user.name);
-      return {
-        id: user.id,
-        name: user.name,
-        status: user.status,
-        totalWorkTime: user.totalWorkTime || 0,
-        totalBreakTime: user.totalBreakTime || 0,
-        completedSessions: user.completedSessions || 0,
-        joinedAt: user.joinedAt,
-        lastActivity: user.lastActivity,
-        roomId: user.roomId
-      };
-    });
+    // Get all users from UserStore (includes both online and offline users)
+    const allUsersData = [];
+    const onlineUserIds = new Set(Array.from(users.values()).map(user => user.id));
+    
+    // First add all persistent users from UserStore
+    for (const [userId, persistentUser] of userStore.persistentUsers) {
+      console.log('Processing persistent user:', persistentUser.id, persistentUser.name, 'Status:', persistentUser.status);
+      allUsersData.push({
+        id: persistentUser.id,
+        name: persistentUser.name,
+        status: persistentUser.status,
+        totalWorkTime: persistentUser.totalWorkTime || 0,
+        totalBreakTime: persistentUser.totalBreakTime || 0,
+        completedSessions: persistentUser.completedSessions || 0,
+        joinedAt: persistentUser.joinedAt,
+        lastActivity: persistentUser.lastActivity,
+        roomId: null // Offline users don't have active room connections
+      });
+    }
+    
+    // Then update/add any online users from the active users map to get current room info
+    for (const [socketId, activeUser] of users) {
+      const existingUserIndex = allUsersData.findIndex(user => user.id === activeUser.id);
+      if (existingUserIndex >= 0) {
+        // Update existing user with current room info
+        allUsersData[existingUserIndex].roomId = activeUser.roomId;
+        allUsersData[existingUserIndex].status = 'online';
+      } else {
+        // Add user if somehow not in persistent store
+        console.log('Found active user not in persistent store:', activeUser.id, activeUser.name);
+        allUsersData.push({
+          id: activeUser.id,
+          name: activeUser.name,
+          status: activeUser.status,
+          totalWorkTime: activeUser.totalWorkTime || 0,
+          totalBreakTime: activeUser.totalBreakTime || 0,
+          completedSessions: activeUser.completedSessions || 0,
+          joinedAt: activeUser.joinedAt,
+          lastActivity: activeUser.lastActivity,
+          roomId: activeUser.roomId
+        });
+      }
+    }
 
-    console.log('Sending admin data - Rooms:', roomsData.length, 'Users:', usersData.length);
+    console.log('Sending admin data - Rooms:', roomsData.length, 'All Users:', allUsersData.length);
 
     res.json({
       rooms: roomsData,
-      users: usersData
+      users: allUsersData
     });
   } catch (error) {
     console.error('Admin data fetch error:', error);
@@ -105,7 +135,13 @@ router.delete('/users/:userId', requireAdmin, (req, res) => {
     const { rooms, users } = req.app.locals;
     const io = req.app.locals.io;
 
-    // Find user by ID across all sessions
+    // Check if user exists in persistent store
+    const persistentUser = userStore.getUser(userId);
+    if (!persistentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Find if user is currently online
     let targetUser = null;
     let targetSocketId = null;
 
@@ -117,34 +153,36 @@ router.delete('/users/:userId', requireAdmin, (req, res) => {
       }
     }
 
-    if (!targetUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Remove user from their room
-    if (targetUser.roomId) {
-      const room = rooms.get(targetUser.roomId);
-      if (room) {
-        room.removeUser(userId);
-        
-        // Notify other users in the room
-        io.to(targetUser.roomId).emit('user_left', {
-          userId: userId,
-          userName: targetUser.name,
-          reason: 'removed_by_admin'
-        });
+    // If user is online, handle their active session
+    if (targetUser) {
+      // Remove user from their room
+      if (targetUser.roomId) {
+        const room = rooms.get(targetUser.roomId);
+        if (room) {
+          room.removeUser(userId);
+          
+          // Notify other users in the room
+          io.to(targetUser.roomId).emit('user_left', {
+            userId: userId,
+            userName: targetUser.name,
+            reason: 'removed_by_admin'
+          });
+        }
       }
+
+      // Disconnect the user's socket
+      const socket = io.sockets.sockets.get(targetSocketId);
+      if (socket) {
+        socket.emit('user_removed', { message: 'You have been removed by admin' });
+        socket.disconnect();
+      }
+
+      // Remove from global users map
+      users.delete(targetSocketId);
     }
 
-    // Disconnect the user's socket
-    const socket = io.sockets.sockets.get(targetSocketId);
-    if (socket) {
-      socket.emit('user_removed', { message: 'You have been removed by admin' });
-      socket.disconnect();
-    }
-
-    // Remove from global users map
-    users.delete(targetSocketId);
+    // Remove from persistent store (this handles both online and offline users)
+    userStore.removeUser(userId);
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
@@ -165,7 +203,16 @@ router.patch('/users/:userId', requireAdmin, (req, res) => {
     console.log('Update data:', updates);
     console.log('Total users in memory:', users.size);
 
-    // Find user by ID across all sessions
+    // Get the persistent user (works for both online and offline users)
+    const persistentUser = userStore.getUser(userId);
+    if (!persistentUser) {
+      console.error('User not found in persistent store:', userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log('Found persistent user:', persistentUser.name, 'Status:', persistentUser.status);
+
+    // Find if user is currently online
     let targetUser = null;
     let targetSocketId = null;
 
@@ -174,82 +221,71 @@ router.patch('/users/:userId', requireAdmin, (req, res) => {
       if (user.id === userId) {
         targetUser = user;
         targetSocketId = socketId;
-        console.log('Found target user:', targetUser.name);
+        console.log('Found active user:', targetUser.name);
         break;
       }
     }
 
-    if (!targetUser) {
-      console.error('User not found:', userId);
-      return res.status(404).json({ error: 'User not found' });
-    }
+    console.log('Updating user:', persistentUser.name, 'with:', updates);
 
-    console.log('Updating user:', targetUser.name, 'with:', updates);
-
-    // Update allowed fields in the active user (users Map)
+    // Update the persistent user first (this is the authoritative source)
     if (updates.name !== undefined) {
-      console.log('Updating name from', targetUser.name, 'to', updates.name);
-      targetUser.name = updates.name;
+      console.log('Updating name from', persistentUser.name, 'to', updates.name);
+      persistentUser.name = updates.name;
     }
     if (updates.totalWorkTime !== undefined) {
-      targetUser.totalWorkTime = parseFloat(updates.totalWorkTime) || 0;
+      persistentUser.totalWorkTime = parseFloat(updates.totalWorkTime) || 0;
     }
     if (updates.totalBreakTime !== undefined) {
-      targetUser.totalBreakTime = parseFloat(updates.totalBreakTime) || 0;
+      persistentUser.totalBreakTime = parseFloat(updates.totalBreakTime) || 0;
     }
     if (updates.completedSessions !== undefined) {
-      targetUser.completedSessions = parseInt(updates.completedSessions) || 0;
+      persistentUser.completedSessions = parseInt(updates.completedSessions) || 0;
     }
 
-    // Also update the persistent user in UserStore
-    const persistentUser = userStore.getUser(targetUser.id);
-    if (persistentUser) {
-      console.log('Updating persistent user:', persistentUser.name);
+    // If user is currently online, also update the active user data
+    if (targetUser) {
+      console.log('Updating active user data as well');
       if (updates.name !== undefined) {
-        persistentUser.name = updates.name;
+        targetUser.name = updates.name;
       }
       if (updates.totalWorkTime !== undefined) {
-        persistentUser.totalWorkTime = parseFloat(updates.totalWorkTime) || 0;
+        targetUser.totalWorkTime = parseFloat(updates.totalWorkTime) || 0;
       }
       if (updates.totalBreakTime !== undefined) {
-        persistentUser.totalBreakTime = parseFloat(updates.totalBreakTime) || 0;
+        targetUser.totalBreakTime = parseFloat(updates.totalBreakTime) || 0;
       }
       if (updates.completedSessions !== undefined) {
-        persistentUser.completedSessions = parseInt(updates.completedSessions) || 0;
+        targetUser.completedSessions = parseInt(updates.completedSessions) || 0;
       }
-      console.log('Persistent user updated successfully:', persistentUser.name);
-    } else {
-      console.log('Warning: Persistent user not found for ID:', targetUser.id);
     }
 
-    console.log('User updated successfully:', targetUser.name);
-
-    // Notify user and room about the update
-    if (targetUser.roomId) {
+    // Notify user and room about the update if user is currently online
+    if (targetUser && targetUser.roomId) {
       io.to(targetUser.roomId).emit('user_updated', {
-        userId: targetUser.id,
+        userId: persistentUser.id,
         userData: {
-          id: targetUser.id,
-          name: targetUser.name,
-          status: targetUser.status,
-          totalWorkTime: targetUser.totalWorkTime || 0,
-          totalBreakTime: targetUser.totalBreakTime || 0,
-          completedSessions: targetUser.completedSessions || 0
+          id: persistentUser.id,
+          name: persistentUser.name,
+          status: persistentUser.status,
+          totalWorkTime: persistentUser.totalWorkTime || 0,
+          totalBreakTime: persistentUser.totalBreakTime || 0,
+          completedSessions: persistentUser.completedSessions || 0
         }
       });
     }
 
-    // Return updated user data
+    // Return updated user data from persistent store
     const updatedData = {
-      id: targetUser.id,
-      name: targetUser.name,
-      status: targetUser.status,
-      totalWorkTime: targetUser.totalWorkTime || 0,
-      totalBreakTime: targetUser.totalBreakTime || 0,
-      completedSessions: targetUser.completedSessions || 0,
-      joinedAt: targetUser.joinedAt,
-      lastActivity: targetUser.lastActivity,
-      roomId: targetUser.roomId
+      id: persistentUser.id,
+      name: persistentUser.name,
+      status: persistentUser.status,
+      totalWorkTime: persistentUser.totalWorkTime || 0,
+      totalBreakTime: persistentUser.totalBreakTime || 0,
+      completedSessions: persistentUser.completedSessions || 0,
+      joinedAt: persistentUser.joinedAt,
+      lastActivity: persistentUser.lastActivity,
+      roomId: targetUser ? targetUser.roomId : null // Get room from active user if online
     };
 
     console.log('Returning updated data:', updatedData);
@@ -257,6 +293,102 @@ router.patch('/users/:userId', requireAdmin, (req, res) => {
   } catch (error) {
     console.error('User update error:', error);
     res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// Persistence management endpoints
+// Manual save all data
+router.post('/persistence/save', requireAdmin, async (req, res) => {
+  try {
+    const { rooms } = req.app.locals;
+    
+    if (!userStore.persistenceManager) {
+      return res.status(500).json({ error: 'Persistence manager not available' });
+    }
+    
+    await userStore.persistenceManager.saveAll(rooms, userStore);
+    
+    res.json({ 
+      message: 'Data saved successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Manual save error:', error);
+    res.status(500).json({ error: 'Failed to save data' });
+  }
+});
+
+// Get persistence status
+router.get('/persistence/status', requireAdmin, async (req, res) => {
+  try {
+    const { rooms } = req.app.locals;
+    
+    const status = {
+      persistenceManagerAvailable: !!userStore.persistenceManager,
+      roomsCount: rooms.size,
+      persistentUsersCount: userStore.persistentUsers.size,
+      lastSaveTime: 'Auto-save every 30 seconds',
+      hasPersistentData: false
+    };
+    
+    if (userStore.persistenceManager) {
+      status.hasPersistentData = await userStore.persistenceManager.hasPersistentData();
+    }
+    
+    res.json(status);
+  } catch (error) {
+    console.error('Persistence status error:', error);
+    res.status(500).json({ error: 'Failed to get persistence status' });
+  }
+});
+
+// Cleanup old data
+router.post('/persistence/cleanup', requireAdmin, async (req, res) => {
+  try {
+    const { daysToKeep = 30 } = req.body;
+    
+    if (!userStore.persistenceManager) {
+      return res.status(500).json({ error: 'Persistence manager not available' });
+    }
+    
+    await userStore.persistenceManager.cleanupOldData(daysToKeep);
+    
+    res.json({ 
+      message: `Data older than ${daysToKeep} days cleaned up successfully`,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Cleanup error:', error);
+    res.status(500).json({ error: 'Failed to cleanup old data' });
+  }
+});
+
+// Get timer recovery information
+router.get('/persistence/recovery', requireAdmin, (req, res) => {
+  try {
+    const recoveredUsers = [];
+    
+    for (const [userId, user] of userStore.persistentUsers) {
+      if (user.recoveryInfo && user.recoveryInfo.recovered) {
+        recoveredUsers.push({
+          userId: user.id,
+          userName: user.name,
+          recoveryInfo: user.recoveryInfo,
+          currentTimerState: user.timerState
+        });
+      }
+    }
+    
+    const report = {
+      totalRecoveredUsers: recoveredUsers.length,
+      recoveredUsers: recoveredUsers,
+      lastRecoveryTime: new Date().toISOString()
+    };
+    
+    res.json(report);
+  } catch (error) {
+    console.error('Recovery info error:', error);
+    res.status(500).json({ error: 'Failed to get recovery information' });
   }
 });
 

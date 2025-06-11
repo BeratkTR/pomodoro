@@ -2,6 +2,28 @@ const config = require('../config');
 const { User } = require('../models');
 const userStore = require('../services/UserStore');
 
+// Helper function to trigger persistence save with debouncing
+let saveTimeout = null;
+function triggerPersistenceSave(rooms, userStore, delay = 5000) {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+  
+  saveTimeout = setTimeout(async () => {
+    try {
+      if (userStore.persistenceManager) {
+        await Promise.all([
+          userStore.persistenceManager.saveRooms(rooms),
+          userStore.persistenceManager.saveUsers(userStore)
+        ]);
+        console.log('Auto-saved data after user activity');
+      }
+    } catch (error) {
+      console.error('Error during triggered persistence save:', error);
+    }
+  }, delay);
+}
+
 function initializeSocketHandlers(io, rooms, users) {
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
@@ -177,6 +199,9 @@ function initializeSocketHandlers(io, rooms, users) {
       });
 
       console.log(`User ${persistentUser.name} joined room ${room.name}`);
+      
+      // Trigger persistence save when user joins
+      triggerPersistenceSave(rooms, userStore);
     });
 
     // Handle explicit leave room
@@ -245,6 +270,9 @@ function initializeSocketHandlers(io, rooms, users) {
       }
 
       userInstance.startTimer(io, user.roomId);
+      
+      // Immediate persistence save for timer state changes
+      triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
     });
 
     socket.on('pause_timer', () => {
@@ -264,6 +292,9 @@ function initializeSocketHandlers(io, rooms, users) {
       }
 
       userInstance.pauseTimer(io, user.roomId);
+      
+      // Immediate persistence save for timer state changes
+      triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
     });
 
     socket.on('reset_timer', () => {
@@ -283,6 +314,9 @@ function initializeSocketHandlers(io, rooms, users) {
       }
 
       userInstance.resetTimer(io, user.roomId);
+      
+      // Immediate persistence save for timer state changes
+      triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
     });
 
     socket.on('change_mode', (data) => {
@@ -302,6 +336,9 @@ function initializeSocketHandlers(io, rooms, users) {
       }
 
       userInstance.changeMode(data.mode, io, user.roomId);
+      
+      // Immediate persistence save for timer state changes
+      triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
     });
 
     socket.on('skip_to_break', () => {
@@ -321,6 +358,9 @@ function initializeSocketHandlers(io, rooms, users) {
       }
 
       userInstance.skipToBreak(io, user.roomId);
+      
+      // Immediate persistence save for timer state changes
+      triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
     });
 
     socket.on('skip_to_focus', () => {
@@ -340,6 +380,9 @@ function initializeSocketHandlers(io, rooms, users) {
       }
 
       userInstance.skipToFocus(io, user.roomId);
+      
+      // Immediate persistence save for timer state changes
+      triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
     });
 
     // Handle individual settings update  ----------------------------------------------
@@ -354,6 +397,9 @@ function initializeSocketHandlers(io, rooms, users) {
       if (!userInstance) return;
 
       userInstance.updateSettings(newSettings, io, user.roomId);
+      
+      // Trigger persistence save for settings changes
+      triggerPersistenceSave(rooms, userStore);
     });
 
     // Handle user name update  ----------------------------------------------
@@ -389,6 +435,9 @@ function initializeSocketHandlers(io, rooms, users) {
       });
 
       console.log(`User ${oldName} changed name to ${data.name}`);
+      
+      // Trigger persistence save for name changes
+      triggerPersistenceSave(rooms, userStore);
     });
 
     // Handle task management  ----------------------------------------------
@@ -409,6 +458,9 @@ function initializeSocketHandlers(io, rooms, users) {
         userId: user.id,
         userData: userInstance.getUserData()
       });
+      
+      // Trigger persistence save for task changes
+      triggerPersistenceSave(rooms, userStore);
     });
 
     socket.on('update_task', (taskUpdate) => {
@@ -429,6 +481,9 @@ function initializeSocketHandlers(io, rooms, users) {
           userId: user.id,
           userData: userInstance.getUserData()
         });
+        
+        // Trigger persistence save for task changes
+        triggerPersistenceSave(rooms, userStore);
       }
     });
 
@@ -449,6 +504,9 @@ function initializeSocketHandlers(io, rooms, users) {
         userId: user.id,
         userData: userInstance.getUserData()
       });
+      
+      // Trigger persistence save for task changes
+      triggerPersistenceSave(rooms, userStore);
     });
 
     // Handle chat messages  ----------------------------------------------
@@ -499,6 +557,9 @@ function initializeSocketHandlers(io, rooms, users) {
       // Message is sent and delivered immediately
 
       console.log(`Chat message in room ${room.name} from ${userInstance.name}: ${data.text}`);
+      
+      // Trigger persistence save for chat messages
+      triggerPersistenceSave(rooms, userStore);
     });
 
     // Handle message read status  ----------------------------------------------
@@ -565,6 +626,9 @@ function initializeSocketHandlers(io, rooms, users) {
             userId: user.id,
             users: room.getUsersData()
           });
+          
+          // Trigger persistence save for user status changes
+          triggerPersistenceSave(rooms, userStore);
 
           // Only clean up rooms after a much longer delay and only if room has no attendees at all
           setTimeout(() => {

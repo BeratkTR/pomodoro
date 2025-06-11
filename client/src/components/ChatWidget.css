@@ -142,6 +142,8 @@
   flex-direction: column;
   gap: 12px;
   background: rgba(20, 20, 20, 0.3);
+  /* Basic overflow scrolling */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -171,6 +173,97 @@
   line-height: 1.4;
 }
 
+/* Scroll Indicator */
+.scroll-indicator {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin-bottom: 8px;
+  animation: slideDown 0.3s ease;
+}
+
+.scroll-indicator-content {
+  background: rgba(186, 47, 47, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.scroll-to-bottom-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.scroll-to-bottom-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Jump to Bottom Button */
+.jump-to-bottom {
+  position: absolute;
+  bottom: 80px;
+  right: 16px;
+  z-index: 10;
+  animation: slideUp 0.3s ease;
+}
+
+.jump-to-bottom-btn {
+  background: linear-gradient(135deg, #ba2f2f 0%, #d63a3a 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(186, 47, 47, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.jump-to-bottom-btn:hover {
+  background: linear-gradient(135deg, #c43333 0%, #e04444 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(186, 47, 47, 0.6);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Message Styles */
 .message {
   display: flex;
@@ -193,6 +286,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #e0e0e0;
+
 }
 
 .own-message .message-content {

@@ -9,6 +9,7 @@ class Room {
     this.users = new Map(); // userId -> user data
     this.createdAt = new Date();
     this.maxUsers = 2; // Limit to 2 users per room
+    this.chatHistory = []; // Store chat messages for persistence
   }
 
   addUser(user) {

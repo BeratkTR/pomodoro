@@ -1,8 +1,69 @@
 const User = require('../models/User');
+const TimerStateRecovery = require('./TimerStateRecovery');
 
 class UserStore {
   constructor() {
     this.persistentUsers = new Map(); // userId -> User instance
+    this.persistenceManager = null; // Will be set by server
+  }
+
+  setPersistenceManager(persistenceManager) {
+    this.persistenceManager = persistenceManager;
+  }
+
+  // Load users from persistence
+  async loadFromPersistence() {
+    if (!this.persistenceManager) return;
+    
+    try {
+      const usersData = await this.persistenceManager.loadUsers();
+      
+      const recoveredUsers = [];
+      
+      for (const [userId, userData] of Object.entries(usersData)) {
+        // Create user instance without socket connection (offline)
+        const user = new User(userData.id, userData.name, null);
+        
+        // Restore all user data
+        this.restoreUserData(user, userData);
+        
+        // Attempt timer state recovery
+        const recoveryInfo = TimerStateRecovery.recoverTimerState(user, userData);
+        user.recoveryInfo = recoveryInfo;
+        
+        if (recoveryInfo.recovered) {
+          recoveredUsers.push(user);
+          console.log(`Timer recovery for ${user.name}: ${recoveryInfo.message}`);
+        }
+        
+        // Set as offline
+        user.status = 'offline';
+        user.socketId = null;
+        
+        this.persistentUsers.set(userId, user);
+      }
+      
+      // Generate and log recovery report
+      if (recoveredUsers.length > 0) {
+        const report = TimerStateRecovery.generateRecoveryReport(recoveredUsers);
+        console.log('Timer Recovery Report:', JSON.stringify(report, null, 2));
+      }
+      
+      console.log(`Loaded ${Object.keys(usersData).length} users from persistence`);
+    } catch (error) {
+      console.error('Error loading users from persistence:', error);
+    }
+  }
+
+  // Save users to persistence
+  async saveToPersistence() {
+    if (!this.persistentUsers || !this.persistenceManager) return;
+    
+    try {
+      await this.persistenceManager.saveUsers(this);
+    } catch (error) {
+      console.error('Error saving users to persistence:', error);
+    }
   }
 
   // Get or create a persistent user
@@ -72,14 +133,21 @@ class UserStore {
     }
     
     if (userData.timerState) {
-      // Restore timer state but always start as paused
+      // Restore timer state with exact time remaining but always start as paused
       user.timerState = {
         ...userData.timerState,
-        isActive: false,
-        timeLeft: userData.timerState.mode === 'pomodoro' 
-          ? user.settings.pomodoro * 60 
-          : user.settings.break * 60
+        isActive: false // Always restore as paused to prevent ghost timers
+        // Preserve timeLeft from saved state to restore exact progress
       };
+      
+      // If timeLeft is invalid or missing, reset to full session time
+      if (typeof user.timerState.timeLeft !== 'number' || 
+          user.timerState.timeLeft < 0 || 
+          user.timerState.timeLeft > (user.timerState.mode === 'pomodoro' ? user.settings.pomodoro * 60 : user.settings.break * 60)) {
+        user.timerState.timeLeft = user.timerState.mode === 'pomodoro' 
+          ? user.settings.pomodoro * 60 
+          : user.settings.break * 60;
+      }
     }
     
     // After restoring, check if we need to reset for a new day

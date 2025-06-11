@@ -228,7 +228,15 @@ export const setupSocketListeners = (
   // Chat events
   socketService.on('chat_message', (data) => {
     console.log('Received chat message:', data)
-    setChatMessages(prev => [...prev, data])
+    setChatMessages(prev => {
+      // Prevent duplicate messages
+      const messageExists = prev.some(msg => msg.id === data.id)
+      if (messageExists) {
+        return prev
+      }
+      // No limit on chat history - keep all messages
+      return [...prev, data]
+    })
     
     // If message is from partner, handle sound and unread count
     const currentUser = getCurrentUser()

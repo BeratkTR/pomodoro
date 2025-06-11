@@ -134,6 +134,9 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
+# Persistence data directory
+server/data/
+
 # Audio files (in case you have large audio assets)
 *.wav
 *.m4a
