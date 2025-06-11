@@ -237,7 +237,11 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
     // Only show bars up to current session, starting with 1 bar minimum
     const totalBars = Math.max(1, currentSession);
     const sessionHistory = partner?.sessionHistory || [];
-    const deadTimeGaps = calculateDeadTimeGaps(sessionHistory);
+    const deadTimeGaps = calculateDeadTimeGaps(
+      sessionHistory, 
+      partner?.timerState, 
+      partner?.settings
+    );
     
     // Get partner timer settings
     const pomodoroLength = partner?.settings?.pomodoro || 50;
@@ -267,22 +271,22 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
     }
     
     for (let index = 0; index < totalBars; index++) {
-      const sessionNum = index + 1;
-      const historyIndex = index;
-      
+          const sessionNum = index + 1;
+          const historyIndex = index;
+          
       // Add session bar
       elements.push(
-        <SessionBar 
+            <SessionBar 
           key={`session-${sessionNum}`}
-          sessionNum={sessionNum}
-          historyIndex={historyIndex}
-          sessionHistory={sessionHistory}
-          pomodoroLength={pomodoroLength}
-          breakLength={breakLength}
-          currentSession={currentSession}
-          currentTimerState={partner?.timerState}
-        />
-      );
+              sessionNum={sessionNum}
+              historyIndex={historyIndex}
+              sessionHistory={sessionHistory}
+              pomodoroLength={pomodoroLength}
+              breakLength={breakLength}
+              currentSession={currentSession}
+              currentTimerState={partner?.timerState}
+            />
+          );
       
       // Check if there's a dead time gap after this session (but not start-of-day gaps)
       const gapAfterThisSession = deadTimeGaps.find(gap => 

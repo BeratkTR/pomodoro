@@ -1,6 +1,6 @@
 // Calculate dead time gaps between sessions (works for any session type - pomodoro or break)
-export const calculateDeadTimeGaps = (sessionHistory) => {
-  if (!sessionHistory || sessionHistory.length === 0) return [];
+export const calculateDeadTimeGaps = (sessionHistory, currentTimerState = null, userSettings = null) => {
+  if (!sessionHistory) sessionHistory = [];
   
   const gaps = [];
   
@@ -84,6 +84,93 @@ export const calculateDeadTimeGaps = (sessionHistory) => {
           }
         });
       }
+    }
+  }
+  
+  // Add dead time gap for current active session (if user has started a timer)
+  if (currentTimerState && sessionHistory.length > 0) {
+    const lastCompletedSession = sessionHistory[sessionHistory.length - 1];
+    
+    if (lastCompletedSession.completedAt && currentTimerState.isActive) {
+      // Calculate when the current session started
+      // We need to estimate when the current session started based on timer state
+      const currentSessionExpectedDuration = currentTimerState.mode === 'pomodoro' ? 
+        (userSettings?.pomodoro || 25) : (userSettings?.break || 10);
+      const currentSessionElapsedTime = (currentSessionExpectedDuration * 60) - currentTimerState.timeLeft;
+      const currentSessionStartTime = Date.now() - (currentSessionElapsedTime * 1000);
+      
+      // Calculate when the last completed session ended
+      const lastSessionEndTime = new Date(lastCompletedSession.completedAt).getTime();
+      
+      // Calculate the gap
+      const gapMilliseconds = currentSessionStartTime - lastSessionEndTime;
+      const gapMinutes = gapMilliseconds / (1000 * 60);
+      
+      // Only include if gap is 10 minutes or more
+      if (gapMinutes >= 10) {
+        console.log('⏰ Current session gap calculation:', {
+          lastSessionEndTime: new Date(lastSessionEndTime).toISOString(),
+          currentSessionStartTime: new Date(currentSessionStartTime).toISOString(),
+          currentSessionMode: currentTimerState.mode,
+          gapMinutes: gapMinutes,
+          gapFormatted: `${Math.floor(gapMinutes / 60)} hours ${Math.round(gapMinutes % 60)} mins`
+        });
+        
+        gaps.push({
+          afterSessionIndex: sessionHistory.length - 1, // After the last completed session
+          duration: gapMinutes,
+          isStartOfDay: false,
+          isCurrentSession: true, // Mark as current session gap
+          debug: {
+            lastSessionType: lastCompletedSession.type,
+            currentSessionType: currentTimerState.mode,
+            lastSessionEndTime: new Date(lastSessionEndTime).toISOString(),
+            currentSessionStartTime: new Date(currentSessionStartTime).toISOString(),
+            gapMinutes: gapMinutes
+          }
+        });
+      }
+    }
+  }
+  
+  // Handle case where this is the very first session of the day and user has started timer
+  if (currentTimerState && sessionHistory.length === 0 && currentTimerState.isActive) {
+    // Calculate when the current session started
+    const currentSessionExpectedDuration = currentTimerState.mode === 'pomodoro' ? 
+      (userSettings?.pomodoro || 25) : (userSettings?.break || 10);
+    const currentSessionElapsedTime = (currentSessionExpectedDuration * 60) - currentTimerState.timeLeft;
+    const currentSessionStartTime = Date.now() - (currentSessionElapsedTime * 1000);
+    
+    // Get start of day (midnight)
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    
+    // Calculate gap from day start to current session
+    const gapMilliseconds = currentSessionStartTime - dayStart.getTime();
+    const gapMinutes = gapMilliseconds / (1000 * 60);
+    
+    // Only include if gap is 10 minutes or more
+    if (gapMinutes >= 10 && currentSessionStartTime > dayStart.getTime()) {
+      console.log('🌅 First session (current) gap calculation:', {
+        dayStart: dayStart.toISOString(),
+        currentSessionStartTime: new Date(currentSessionStartTime).toISOString(),
+        currentSessionMode: currentTimerState.mode,
+        gapMinutes: gapMinutes,
+        gapFormatted: `${Math.floor(gapMinutes / 60)} hours ${Math.round(gapMinutes % 60)} mins`
+      });
+      
+      gaps.push({
+        afterSessionIndex: -1, // Special index for start-of-day gap
+        duration: gapMinutes,
+        isStartOfDay: true,
+        isCurrentSession: true, // Mark as current session gap
+        debug: {
+          dayStart: dayStart.toISOString(),
+          currentSessionStartTime: new Date(currentSessionStartTime).toISOString(),
+          currentSessionType: currentTimerState.mode,
+          gapMinutes: gapMinutes
+        }
+      });
     }
   }
   

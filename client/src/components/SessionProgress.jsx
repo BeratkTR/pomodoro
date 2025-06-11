@@ -184,7 +184,11 @@ const SessionProgress = ({ currentUser }) => {
   const renderSessionBars = (completedSessions, currentSession) => {
     const totalBars = Math.max(1, currentSession);
     const sessionHistory = currentUser?.sessionHistory || [];
-    const deadTimeGaps = calculateDeadTimeGaps(sessionHistory);
+    const deadTimeGaps = calculateDeadTimeGaps(
+      sessionHistory, 
+      currentUser?.timerState, 
+      currentUser?.settings
+    );
     
     // Debug logging for dead time gaps
     if (deadTimeGaps.length > 0) {
@@ -209,22 +213,22 @@ const SessionProgress = ({ currentUser }) => {
     }
     
     for (let index = 0; index < totalBars; index++) {
-      const sessionNum = index + 1;
-      const historyIndex = index;
-      
+          const sessionNum = index + 1;
+          const historyIndex = index;
+          
       // Add session bar
       elements.push(
-        <SessionBar 
+            <SessionBar 
           key={`session-${sessionNum}`}
-          sessionNum={sessionNum}
-          historyIndex={historyIndex}
-          sessionHistory={sessionHistory}
-          pomodoroLength={pomodoroLength}
-          breakLength={breakLength}
-          currentSession={currentSession}
-          currentTimerState={currentUser?.timerState}
-        />
-      );
+              sessionNum={sessionNum}
+              historyIndex={historyIndex}
+              sessionHistory={sessionHistory}
+              pomodoroLength={pomodoroLength}
+              breakLength={breakLength}
+              currentSession={currentSession}
+              currentTimerState={currentUser?.timerState}
+            />
+          );
       
       // Check if there's a dead time gap after this session (but not start-of-day gaps)
       const gapAfterThisSession = deadTimeGaps.find(gap => 
