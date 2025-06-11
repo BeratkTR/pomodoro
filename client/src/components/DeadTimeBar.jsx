@@ -11,9 +11,29 @@ const DeadTimeBar = ({ duration, gapIndex }) => {
       if (seconds === 1) return '1sec';
       return `${seconds}secs`;
     }
+    
     const roundedMinutes = Math.round(minutes);
-    if (roundedMinutes === 1) return '1min';
-    return `${roundedMinutes}mins`;
+    
+    // If less than 60 minutes, show just minutes
+    if (roundedMinutes < 60) {
+      if (roundedMinutes === 1) return '1min';
+      return `${roundedMinutes}mins`;
+    }
+    
+    // If 60+ minutes, show hours and minutes
+    const hours = Math.floor(roundedMinutes / 60);
+    const remainingMinutes = roundedMinutes % 60;
+    
+    if (remainingMinutes === 0) {
+      // Exact hours (e.g., "2 hours")
+      if (hours === 1) return '1 hour';
+      return `${hours} hours`;
+    } else {
+      // Hours and minutes (e.g., "5 hours 2 mins")
+      const hourText = hours === 1 ? '1 hour' : `${hours} hours`;
+      const minText = remainingMinutes === 1 ? '1 min' : `${remainingMinutes} mins`;
+      return `${hourText} ${minText}`;
+    }
   };
 
   const calculateBarWidth = (durationMinutes) => {

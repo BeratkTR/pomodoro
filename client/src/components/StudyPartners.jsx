@@ -254,6 +254,18 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
     
     const elements = [];
     
+    // Add start-of-day dead time if it exists (before any session bars)
+    const startOfDayGap = deadTimeGaps.find(gap => gap.isStartOfDay);
+    if (startOfDayGap) {
+      elements.push(
+        <DeadTimeBar
+          key="deadtime-start-of-day"
+          duration={startOfDayGap.duration}
+          gapIndex={-1}
+        />
+      );
+    }
+    
     for (let index = 0; index < totalBars; index++) {
       const sessionNum = index + 1;
       const historyIndex = index;
@@ -272,8 +284,10 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
         />
       );
       
-      // Check if there's a dead time gap after this session
-      const gapAfterThisSession = deadTimeGaps.find(gap => gap.afterSessionIndex === historyIndex);
+      // Check if there's a dead time gap after this session (but not start-of-day gaps)
+      const gapAfterThisSession = deadTimeGaps.find(gap => 
+        gap.afterSessionIndex === historyIndex && !gap.isStartOfDay
+      );
       if (gapAfterThisSession) {
         elements.push(
           <DeadTimeBar
