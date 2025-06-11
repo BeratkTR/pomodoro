@@ -6,6 +6,7 @@ import RoomJoinModal from './components/RoomJoinModal'
 // import SoundPermissionModal from './components/SoundPermissionModal'
 import TaskList from './components/TaskList'
 import ChatWidget from './components/ChatWidget'
+import PersonalStatsModal from './components/PersonalStatsModal'
 import socketService from './services/socketService'
 import apiService from './services/apiService'
 import soundService from './services/soundService'
@@ -84,6 +85,10 @@ function App() {
   const isChatOpenRef = useRef(false)
   const isReconnectingRef = useRef(false)
   const currentUserRef = useRef(currentUser)
+
+  // Partner stats modal state
+  const [showPartnerStatsModal, setShowPartnerStatsModal] = useState(false)
+  const [partnerForStats, setPartnerForStats] = useState(null)
 
   // Sound permission state (hidden for now)
   // const [showSoundPermissionModal, setShowSoundPermissionModal] = useState(false)
@@ -338,6 +343,17 @@ function App() {
     setUnreadCount(0)
   }
 
+  // Partner stats modal handlers
+  const handleShowPartnerStats = (partner) => {
+    setPartnerForStats(partner)
+    setShowPartnerStatsModal(true)
+  }
+
+  const handleClosePartnerStats = () => {
+    setShowPartnerStatsModal(false)
+    setPartnerForStats(null)
+  }
+
   // Debug function to clear localStorage (can be called from browser console)
   window.clearPomodoroStorage = () => {
     localStorage.removeItem('currentRoomId')
@@ -476,6 +492,7 @@ function App() {
             currentUserId={currentUser.id}
             currentUser={currentUser}
             currentRoom={currentRoom}
+            onShowPartnerStats={handleShowPartnerStats}
           />
         </div>
         
@@ -539,6 +556,14 @@ function App() {
           currentUser={currentUser}
           unreadCount={unreadCount}
           onMarkAsRead={handleMarkAsRead}
+        />
+      )}
+
+      {/* Partner Stats Modal */}
+      {showPartnerStatsModal && partnerForStats && (
+        <PersonalStatsModal 
+          onClose={handleClosePartnerStats} 
+          currentUser={partnerForStats} 
         />
       )}
     </div>

@@ -21,22 +21,17 @@ const SessionBar = React.memo(({
     return `${Math.round(minutes)}m`;
   };
   
-  // Calculate the width based on duration ranges (tiered system)
+  // Calculate the width based on duration (smooth scaling - consistent with SessionProgress)
   const calculateBarWidth = (durationMinutes) => {
-    // Tiered scaling system
-    if (durationMinutes <= 5) return 15;      // 0-5 min
-    if (durationMinutes <= 10) return 20;     // 5-10 min
-    if (durationMinutes <= 15) return 25;     // 10-15 min
-    if (durationMinutes <= 20) return 30;     // 15-20 min
-    if (durationMinutes <= 25) return 35;     // 20-25 min
-    if (durationMinutes <= 30) return 40;     // 25-30 min
-    if (durationMinutes <= 35) return 45;     // 30-35 min
-    if (durationMinutes <= 40) return 50;     // 35-40 min
-    if (durationMinutes <= 45) return 55;     // 40-45 min
-    if (durationMinutes <= 50) return 60;     // 45-50 min
-    if (durationMinutes <= 55) return 65;     // 50-55 min
-    if (durationMinutes <= 60) return 70;     // 55-60 min
-    return 75; // 60+ min (maximum)
+    const minWidth = 20;
+    const maxWidth = 60;
+    const minDuration = 5;
+    const maxDuration = 120;
+    
+    const clampedDuration = Math.max(minDuration, Math.min(maxDuration, durationMinutes));
+    const normalizedDuration = (clampedDuration - minDuration) / (maxDuration - minDuration);
+    
+    return minWidth + (normalizedDuration * (maxWidth - minWidth));
   };
   
   // Helper function to get the tier description for debugging
@@ -63,14 +58,15 @@ const SessionBar = React.memo(({
   if (historyIndex < sessionHistory.length) {
     const sessionType = sessionHistory[historyIndex].type;
     const sessionData = sessionHistory[historyIndex];
-    barClass += ` completed ${sessionType}`;
+    const isPartial = sessionData.isPartial;
+    barClass += ` completed ${sessionType}${isPartial ? ' partial' : ''}`;
     
     // For completed sessions, use the actual duration that was completed
     // If duration is stored in session history, use that; otherwise fall back to current settings
     const sessionDuration = sessionData.duration || (sessionType === 'pomodoro' ? pomodoroLength : breakLength);
     tooltipText = `${formatBubbleDuration(sessionDuration)}`;
     barWidth = calculateBarWidth(sessionDuration);
-    console.log(`✅ Personal Stats Completed session ${sessionNum}: type=${sessionType}, actualDuration=${sessionDuration}min, tier=${getTierDescription(sessionDuration)}, width=${barWidth}px`);
+    console.log(`✅ Personal Stats Completed session ${sessionNum}: type=${sessionType}, actualDuration=${sessionDuration}min, tier=${getTierDescription(sessionDuration)}, width=${barWidth}px, isPartial=${isPartial}`);
   } else if (sessionNum === currentSession) {
     // Current session - show as yellow/pending with pulse
     barClass += ' current';
@@ -79,7 +75,9 @@ const SessionBar = React.memo(({
     if (currentTimerState) {
       const totalTime = currentTimerState.mode === 'pomodoro' ? pomodoroLength * 60 : breakLength * 60;
       const elapsedSeconds = totalTime - currentTimerState.timeLeft;
-      const elapsedMinutes = elapsedSeconds / 60;
+      // Cap elapsed time to not exceed expected duration
+      const cappedElapsedSeconds = Math.min(elapsedSeconds, totalTime);
+      const elapsedMinutes = Math.max(0, cappedElapsedSeconds / 60);
       
       tooltipText = `${formatBubbleDuration(elapsedMinutes)}`;
       barWidth = calculateBarWidth(elapsedMinutes);
@@ -127,6 +125,20 @@ const SessionBar = React.memo(({
 const PersonalStatsModal = ({ onClose, currentUser }) => {
   // State to force re-render for live updates
   const [, setUpdateTrigger] = useState(0);
+  
+  // State for tab switching
+  const [activeTab, setActiveTab] = useState('today'); // 'today' or 'history'
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState(null);
+
+  // Set the first available historical date when switching to history tab
+  useEffect(() => {
+    if (activeTab === 'history' && !selectedHistoryDate) {
+      const dates = getHistoricalDates();
+      if (dates.length > 0) {
+        setSelectedHistoryDate(dates[0]); // Set to most recent date
+      }
+    }
+  }, [activeTab]);
 
   // Update stats every second when timer is active
   useEffect(() => {
@@ -145,17 +157,18 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
     };
   }, [currentUser?.timerState?.isActive]);
 
-  // Format time function as minutes:seconds (e.g., 3:01 for 3 minutes 1 second)
+  // Format time function as hours:minutes:seconds (e.g., 1:45:12 for 1 hour 45 minutes 12 seconds)
   const formatDuration = (totalMinutes) => {
-    const minutes = Math.floor(totalMinutes);
-    const seconds = Math.round((totalMinutes - minutes) * 60);
+    const totalSeconds = Math.round(totalMinutes * 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
     
-    // Handle case where seconds round to 60
-    if (seconds >= 60) {
-      return `${minutes + 1}:00`;
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
-    
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   // Format time for timer display
@@ -163,6 +176,47 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    const date = new Date(dateString + 'T00:00:00');
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const dateStr = date.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    
+    if (dateStr === todayStr) return 'Today';
+    if (dateStr === yesterdayStr) return 'Yesterday';
+    
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric',
+      year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+    });
+  };
+
+  // Get historical dates
+  const getHistoricalDates = () => {
+    if (!currentUser?.dailyHistory) return [];
+    return Object.keys(currentUser.dailyHistory).sort().reverse(); // Most recent first
+  };
+
+  // Get stats for a specific historical date
+  const getHistoricalStats = (dateString) => {
+    if (!currentUser?.dailyHistory?.[dateString]) return null;
+    
+    const historyData = currentUser.dailyHistory[dateString];
+    return {
+      totalWorkTime: formatDuration(historyData.totalWorkTime || 0),
+      totalBreakTime: formatDuration(historyData.totalBreakTime || 0),
+      completedSessions: historyData.completedSessions || 0,
+      sessionHistory: historyData.sessionHistory || []
+    };
   };
 
   // Calculate personal stats with live updates
@@ -191,7 +245,9 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
       // Calculate elapsed time in current session
       const totalTime = timerState.mode === 'pomodoro' ? pomodoroLength * 60 : breakLength * 60;
       const elapsedSeconds = totalTime - timerState.timeLeft;
-      currentSessionTime = elapsedSeconds / 60;
+      // Cap elapsed time to not exceed expected duration
+      const cappedElapsedSeconds = Math.min(elapsedSeconds, totalTime);
+      currentSessionTime = Math.max(0, cappedElapsedSeconds / 60);
     }
     
     // For display: always show accumulated time + current session time (whether active or paused)
@@ -213,14 +269,24 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
     };
   };
 
-  const renderSessionBars = (completedSessions, currentSession) => {
-    // Only show bars up to current session, starting with 1 bar minimum
-    const totalBars = Math.max(1, currentSession);
-    const sessionHistory = currentUser?.sessionHistory || [];
+  const renderSessionBars = (completedSessions, currentSession, sessionHistory = null, isHistorical = false) => {
+    // Use provided sessionHistory or fall back to current user's
+    const historyToUse = sessionHistory || currentUser?.sessionHistory || [];
+    
+    // For historical data, show all completed sessions; for current day, show up to current session
+    const totalBars = isHistorical ? historyToUse.length : Math.max(1, currentSession);
     
     // Get timer settings
     const pomodoroLength = currentUser?.settings?.pomodoro || 50;
     const breakLength = currentUser?.settings?.break || 10;
+    
+    if (totalBars === 0) {
+      return (
+        <div className="session-progress-bars">
+          <div className="no-sessions-message">No sessions completed on this day</div>
+        </div>
+      );
+    }
     
     return (
       <div className="session-progress-bars">
@@ -233,11 +299,11 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
               key={sessionNum}
               sessionNum={sessionNum}
               historyIndex={historyIndex}
-              sessionHistory={sessionHistory}
+              sessionHistory={historyToUse}
               pomodoroLength={pomodoroLength}
               breakLength={breakLength}
-              currentSession={currentSession}
-              currentTimerState={currentUser?.timerState}
+              currentSession={isHistorical ? historyToUse.length + 1 : currentSession}
+              currentTimerState={isHistorical ? null : currentUser?.timerState}
             />
           );
         })}
@@ -284,42 +350,133 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
         </div>
 
         <div className="modal-body">
-          <div className="partner-stats-section">
-
-
-
-
-            <div className="stats-grid">
-              <div className="stat-card work-time">
-                <div className="stat-icon">📚</div>
-                <div className="stat-content">
-                  <div className="stat-value">{personalStats.totalWorkTime}</div>
-                  <div className="stat-label">Total Work Time</div>
-                </div>
-              </div>
-
-              <div className="stat-card break-time">
-                <div className="stat-icon">☕</div>
-                <div className="stat-content">
-                  <div className="stat-value">{personalStats.totalBreakTime}</div>
-                  <div className="stat-label">Total Break Time</div>
-                </div>
-              </div>
-
-              <div className="stat-card sessions">
-                <div className="stat-icon">🎯</div>
-                <div className="stat-content">
-                  <div className="stat-value">{personalStats.completedSessions}</div>
-                  <div className="stat-label">Completed Sessions</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="session-progress-section">
-              <h4>Session Progress</h4>
-              {renderSessionBars(personalStats.completedSessions, personalStats.currentSession)}
-            </div>
+          {/* Tab Navigation */}
+          <div className="stats-tabs">
+            <button 
+              className={`tab-btn ${activeTab === 'today' ? 'active' : ''}`}
+              onClick={() => setActiveTab('today')}
+            >
+              📅 Today
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+              onClick={() => setActiveTab('history')}
+            >
+              📊 History
+            </button>
           </div>
+
+          {/* Today Tab Content */}
+          {activeTab === 'today' && (
+            <div className="partner-stats-section">
+              <div className="stats-grid">
+                <div className="stat-card work-time">
+                  <div className="stat-icon">📚</div>
+                  <div className="stat-content">
+                    <div className="stat-value">{personalStats.totalWorkTime}</div>
+                    <div className="stat-label">Total Work Time</div>
+                  </div>
+                </div>
+
+                <div className="stat-card break-time">
+                  <div className="stat-icon">☕</div>
+                  <div className="stat-content">
+                    <div className="stat-value">{personalStats.totalBreakTime}</div>
+                    <div className="stat-label">Total Break Time</div>
+                  </div>
+                </div>
+
+                <div className="stat-card sessions">
+                  <div className="stat-icon">🎯</div>
+                  <div className="stat-content">
+                    <div className="stat-value">{personalStats.completedSessions}</div>
+                    <div className="stat-label">Completed Sessions</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="session-progress-section">
+                <h4>Today's Session Progress</h4>
+                {renderSessionBars(personalStats.completedSessions, personalStats.currentSession)}
+              </div>
+            </div>
+          )}
+
+          {/* History Tab Content */}
+          {activeTab === 'history' && (
+            <div className="partner-stats-section">
+              <div className="history-section">
+                {getHistoricalDates().length === 0 ? (
+                  <div className="no-history-message">
+                    <p>No historical data available yet.</p>
+                    <p>Complete some sessions and check back tomorrow!</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="history-dates">
+                      <h4>Select a Date</h4>
+                      <div className="date-buttons">
+                        {getHistoricalDates().map(dateString => (
+                          <button
+                            key={dateString}
+                            className={`date-btn ${selectedHistoryDate === dateString ? 'active' : ''}`}
+                            onClick={() => setSelectedHistoryDate(dateString)}
+                          >
+                            {formatDate(dateString)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {selectedHistoryDate && (() => {
+                      const histStats = getHistoricalStats(selectedHistoryDate);
+                      return histStats ? (
+                        <div className="historical-stats">
+                          <h4>{formatDate(selectedHistoryDate)} - Statistics</h4>
+                          
+                          <div className="stats-grid">
+                            <div className="stat-card work-time">
+                              <div className="stat-icon">📚</div>
+                              <div className="stat-content">
+                                <div className="stat-value">{histStats.totalWorkTime}</div>
+                                <div className="stat-label">Work Time</div>
+                              </div>
+                            </div>
+
+                            <div className="stat-card break-time">
+                              <div className="stat-icon">☕</div>
+                              <div className="stat-content">
+                                <div className="stat-value">{histStats.totalBreakTime}</div>
+                                <div className="stat-label">Break Time</div>
+                              </div>
+                            </div>
+
+                            <div className="stat-card sessions">
+                              <div className="stat-icon">🎯</div>
+                              <div className="stat-content">
+                                <div className="stat-value">{histStats.completedSessions}</div>
+                                <div className="stat-label">Sessions</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="session-progress-section">
+                            <h4>Session Progress</h4>
+                            {renderSessionBars(
+                              histStats.completedSessions,
+                              histStats.sessionHistory.length,
+                              histStats.sessionHistory,
+                              true
+                            )}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

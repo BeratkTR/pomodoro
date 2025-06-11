@@ -36,9 +36,99 @@ class User {
     // Session history to track types of completed sessions
     this.sessionHistory = []; // Array of {type: 'pomodoro'|'break', completedAt: timestamp}
     
-    // Accumulated time tracking (in minutes)
+    // Accumulated time tracking (in minutes) - current day
     this.totalWorkTime = 0;
     this.totalBreakTime = 0;
+    
+    // Daily tracking
+    this.lastResetDate = this.getCurrentDateString(); // Store the date of last reset
+    
+    // Historical data - stores data for each day
+    this.dailyHistory = {
+      // Format: 'YYYY-MM-DD': {
+      //   totalWorkTime: number,
+      //   totalBreakTime: number, 
+      //   completedSessions: number,
+      //   sessionHistory: array
+      // }
+    };
+  }
+
+  // Helper method to get current date string in YYYY-MM-DD format
+  getCurrentDateString() {
+    const now = new Date();
+    return now.getFullYear() + '-' + 
+           String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+           String(now.getDate()).padStart(2, '0');
+  }
+
+  // Check if it's a new day and reset daily stats if needed
+  checkAndResetDaily() {
+    const currentDate = this.getCurrentDateString();
+    
+    if (this.lastResetDate !== currentDate) {
+      console.log(`NEW DAY DETECTED for ${this.name}: Last reset was ${this.lastResetDate}, current date is ${currentDate}`);
+      
+      // Save current day's data to history before resetting
+      if (this.lastResetDate && (this.totalWorkTime > 0 || this.totalBreakTime > 0 || this.completedSessions > 0)) {
+        this.dailyHistory[this.lastResetDate] = {
+          totalWorkTime: this.totalWorkTime,
+          totalBreakTime: this.totalBreakTime,
+          completedSessions: this.completedSessions,
+          sessionHistory: [...this.sessionHistory] // Make a copy
+        };
+        console.log(`Saved data for ${this.lastResetDate}: ${this.totalWorkTime}m work, ${this.totalBreakTime}m break, ${this.completedSessions} sessions`);
+      }
+      
+      // Reset daily stats
+      this.totalWorkTime = 0;
+      this.totalBreakTime = 0;
+      this.completedSessions = 0;
+      this.sessionHistory = [];
+      this.timerState.currentSession = 1;
+      
+      // Update last reset date
+      this.lastResetDate = currentDate;
+      
+      console.log(`Daily stats reset for ${this.name} on ${currentDate}`);
+      
+      return true; // Indicates a reset occurred
+    }
+    
+    return false; // No reset needed
+  }
+
+  // Get historical data for a specific date
+  getHistoryForDate(dateString) {
+    return this.dailyHistory[dateString] || null;
+  }
+
+  // Get all historical dates (for showing in UI)
+  getHistoricalDates() {
+    return Object.keys(this.dailyHistory).sort().reverse(); // Most recent first
+  }
+
+  // Get current day stats including any in-progress session
+  getCurrentDayStats(includeCurrentSession = true) {
+    // First check if we need to reset for a new day
+    this.checkAndResetDaily();
+    
+    let currentSessionTime = 0;
+    
+    if (includeCurrentSession && this.timerState) {
+      const totalTime = this.timerState.mode === 'pomodoro' ? this.settings.pomodoro * 60 : this.settings.break * 60;
+      const elapsedSeconds = totalTime - this.timerState.timeLeft;
+      const cappedElapsedSeconds = Math.min(elapsedSeconds, totalTime);
+      currentSessionTime = Math.max(0, cappedElapsedSeconds / 60);
+    }
+    
+    return {
+      totalWorkTime: this.totalWorkTime + (this.timerState?.mode === 'pomodoro' && includeCurrentSession ? currentSessionTime : 0),
+      totalBreakTime: this.totalBreakTime + (this.timerState?.mode === 'break' && includeCurrentSession ? currentSessionTime : 0),
+      completedSessions: this.completedSessions,
+      sessionHistory: this.sessionHistory,
+      currentSession: this.timerState?.currentSession || 1
+    };
   }
 
   addTask(task) {
@@ -66,6 +156,16 @@ class User {
   }
 
   startTimer(io, roomId) {
+    // Check for daily reset before starting timer
+    const wasReset = this.checkAndResetDaily();
+    if (wasReset) {
+      // Broadcast the reset to update clients
+      io.to(roomId).emit('user_updated', {
+        userId: this.id,
+        userData: this.getUserData()
+      });
+    }
+
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
     }
@@ -152,7 +252,8 @@ class User {
       completedSessions: this.completedSessions,
       sessionHistory: this.sessionHistory,
       totalWorkTime: this.totalWorkTime,
-      totalBreakTime: this.totalBreakTime
+      totalBreakTime: this.totalBreakTime,
+      wasSkipped: false // Natural completion, not skipped
     });
 
     // Auto-start next session if enabled and user is online
@@ -264,8 +365,23 @@ class User {
 
     console.log(`SKIP TO BREAK: ${this.name} - Adding ${elapsedMinutes}m of partial work to totalWorkTime (was ${this.totalWorkTime})`);
     
-    // Add the partial work time to total work time
-    this.totalWorkTime += elapsedMinutes;
+    // Only add time and create session if there was actual elapsed time
+    if (elapsedMinutes > 0) {
+      // Add the partial work time to total work time
+      this.totalWorkTime += elapsedMinutes;
+      
+      // Create session history entry for the partial work session
+      const sessionEntry = {
+        type: 'pomodoro',
+        duration: elapsedMinutes, // Only the actual elapsed time, not the full pomodoro duration
+        completedAt: new Date().toISOString(),
+        isPartial: true // Mark as partial session
+      };
+      
+      this.sessionHistory.push(sessionEntry);
+      
+      console.log(`SKIP TO BREAK: ${this.name} - Created partial session entry: ${elapsedMinutes}m work session`);
+    }
     
     console.log(`SKIP TO BREAK: ${this.name} - totalWorkTime is now ${this.totalWorkTime}m`);
 
@@ -273,6 +389,7 @@ class User {
     this.pauseTimer(io, roomId);
     this.timerState.mode = 'break';
     this.timerState.timeLeft = this.settings.break * 60;
+    this.timerState.currentSession++; // Increment session to allow next skip to create a new bar
 
     // Broadcast the update to include the new totalWorkTime
     io.to(roomId).emit('user_timer_update', {
@@ -280,11 +397,24 @@ class User {
       timerState: this.timerState
     });
 
-    // Also broadcast full user data to ensure totalWorkTime is updated
+    // Also broadcast full user data including session history to ensure all data is updated
     io.to(roomId).emit('user_updated', {
       userId: this.id,
       userData: this.getUserData()
     });
+    
+    // Also emit a timer complete event to ensure session history is properly synced
+    if (elapsedMinutes > 0) {
+      io.to(roomId).emit('user_timer_complete', {
+        userId: this.id,
+        timerState: this.timerState,
+        completedSessions: this.completedSessions,
+        sessionHistory: this.sessionHistory,
+        totalWorkTime: this.totalWorkTime,
+        totalBreakTime: this.totalBreakTime,
+        wasSkipped: true // Manual skip, not natural completion
+      });
+    }
   }
 
   skipToFocus(io, roomId) {
@@ -300,8 +430,23 @@ class User {
 
     console.log(`SKIP TO FOCUS: ${this.name} - Adding ${elapsedMinutes}m of partial break to totalBreakTime (was ${this.totalBreakTime})`);
     
-    // Add the partial break time to total break time
-    this.totalBreakTime += elapsedMinutes;
+    // Only add time and create session if there was actual elapsed time
+    if (elapsedMinutes > 0) {
+      // Add the partial break time to total break time
+      this.totalBreakTime += elapsedMinutes;
+      
+      // Create session history entry for the partial break session
+      const sessionEntry = {
+        type: 'break',
+        duration: elapsedMinutes, // Only the actual elapsed time, not the full break duration
+        completedAt: new Date().toISOString(),
+        isPartial: true // Mark as partial session
+      };
+      
+      this.sessionHistory.push(sessionEntry);
+      
+      console.log(`SKIP TO FOCUS: ${this.name} - Created partial session entry: ${elapsedMinutes}m break session`);
+    }
     
     console.log(`SKIP TO FOCUS: ${this.name} - totalBreakTime is now ${this.totalBreakTime}m`);
 
@@ -309,6 +454,7 @@ class User {
     this.pauseTimer(io, roomId);
     this.timerState.mode = 'pomodoro';
     this.timerState.timeLeft = this.settings.pomodoro * 60;
+    this.timerState.currentSession++; // Increment session to allow next skip to create a new bar
 
     // Broadcast the update to include the new totalBreakTime
     io.to(roomId).emit('user_timer_update', {
@@ -316,11 +462,24 @@ class User {
       timerState: this.timerState
     });
 
-    // Also broadcast full user data to ensure totalBreakTime is updated
+    // Also broadcast full user data including session history to ensure all data is updated
     io.to(roomId).emit('user_updated', {
       userId: this.id,
       userData: this.getUserData()
     });
+    
+    // Also emit a timer complete event to ensure session history is properly synced
+    if (elapsedMinutes > 0) {
+      io.to(roomId).emit('user_timer_complete', {
+        userId: this.id,
+        timerState: this.timerState,
+        completedSessions: this.completedSessions,
+        sessionHistory: this.sessionHistory,
+        totalWorkTime: this.totalWorkTime,
+        totalBreakTime: this.totalBreakTime,
+        wasSkipped: true // Manual skip, not natural completion
+      });
+    }
   }
 
   updateSettings(newSettings, io, roomId) {
@@ -344,6 +503,9 @@ class User {
   }
 
   getUserData() {
+    // Check for daily reset before returning data
+    this.checkAndResetDaily();
+    
     const data = {
       id: this.id,
       name: this.name,
@@ -357,7 +519,10 @@ class User {
       totalWorkTime: this.totalWorkTime,
       totalBreakTime: this.totalBreakTime,
       joinedAt: this.joinedAt,
-      lastActivity: this.lastActivity
+      lastActivity: this.lastActivity,
+      // Include daily tracking data
+      lastResetDate: this.lastResetDate,
+      dailyHistory: this.dailyHistory
     };
     console.log(`getUserData for ${this.name}: totalWorkTime=${this.totalWorkTime}, totalBreakTime=${this.totalBreakTime}`);
     return data;

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import DeadTimeBar from './DeadTimeBar';
+import { calculateDeadTimeGaps } from '../utils/deadTimeUtils';
 
 // SessionBar component for individual session visualization
 const SessionBar = ({ 
@@ -14,12 +16,13 @@ const SessionBar = ({
   const formatBubbleDuration = (minutes) => {
     if (minutes < 1) {
       const seconds = Math.round(minutes * 60);
-      if (seconds === 1) return '1 sec';
-      return `${seconds} secs`;
+      if (seconds === 0) return '0s';
+      if (seconds === 1) return '1s';
+      return `${seconds}s`;
     }
     const roundedMinutes = Math.round(minutes);
     if (roundedMinutes === 1) return '1 min';
-    return `${roundedMinutes} mins`;
+    return `${roundedMinutes} min`;
   };
 
   const calculateBarWidth = (durationMinutes) => {
@@ -67,10 +70,12 @@ const SessionBar = ({
     const totalTime = expectedDuration * 60;
     const elapsedTime = totalTime - currentTimerState.timeLeft;
     
-    // Only show elapsed time if the timer has actually been started (timeLeft is less than full duration)
-    if (currentTimerState.timeLeft < totalTime) {
-      duration = Math.max(0, elapsedTime / 60); // Ensure duration is not negative
-      progress = Math.max(0, elapsedTime / totalTime); // Ensure progress is not negative
+    // Show elapsed time if the timer has been started (timeLeft is less than full duration) OR if the timer is active
+    if (currentTimerState.timeLeft < totalTime || currentTimerState.isActive) {
+      // Cap elapsed time to not exceed expected duration (prevents showing 50:02 for a 50:00 session)
+      const cappedElapsedTime = Math.min(elapsedTime, totalTime);
+      duration = Math.max(0, cappedElapsedTime / 60); // Ensure duration is not negative
+      progress = Math.max(0, Math.min(1, cappedElapsedTime / totalTime)); // Cap progress at 100%
     } else {
       // Timer hasn't been started yet
       duration = 0;
@@ -91,7 +96,8 @@ const SessionBar = ({
   // Determine session state classes
   let sessionClass = '';
   if (isCompleted) {
-    sessionClass = `completed ${sessionType}`;
+    const isPartial = sessionInfo?.isPartial;
+    sessionClass = `completed ${sessionType}${isPartial ? ' partial' : ''}`;
   } else if (isCurrent) {
     sessionClass = 'current';
   } else {
@@ -123,15 +129,19 @@ const SessionProgress = ({ currentUser }) => {
   if (!currentUser) return null;
 
   const formatDuration = (totalMinutes) => {
-    const minutes = Math.floor(totalMinutes);
-    const seconds = Math.round((totalMinutes - minutes) * 60);
+    const totalSeconds = Math.round(totalMinutes * 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
     
-    if (seconds >= 60) {
-      return `${minutes + 1}:00`;
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
-    
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
+
+
 
   const calculateStats = () => {
     const completedSessions = currentUser.completedSessions || 0;
@@ -152,7 +162,9 @@ const SessionProgress = ({ currentUser }) => {
     if (timerState) {
       const totalTime = timerState.mode === 'pomodoro' ? pomodoroLength * 60 : breakLength * 60;
       const elapsedSeconds = totalTime - timerState.timeLeft;
-      currentSessionTime = elapsedSeconds / 60;
+      // Cap elapsed time to not exceed expected duration
+      const cappedElapsedSeconds = Math.min(elapsedSeconds, totalTime);
+      currentSessionTime = Math.max(0, cappedElapsedSeconds / 60);
     }
     
     // For display: show accumulated time + current session time
@@ -172,29 +184,52 @@ const SessionProgress = ({ currentUser }) => {
   const renderSessionBars = (completedSessions, currentSession) => {
     const totalBars = Math.max(1, currentSession);
     const sessionHistory = currentUser?.sessionHistory || [];
+    const deadTimeGaps = calculateDeadTimeGaps(sessionHistory);
+    
+    // Debug logging for dead time gaps
+    if (deadTimeGaps.length > 0) {
+      console.log('🔍 Dead time gaps found:', deadTimeGaps);
+    }
     
     const pomodoroLength = currentUser?.settings?.pomodoro || 50;
     const breakLength = currentUser?.settings?.break || 10;
     
+    const elements = [];
+    
+    for (let index = 0; index < totalBars; index++) {
+      const sessionNum = index + 1;
+      const historyIndex = index;
+      
+      // Add session bar
+      elements.push(
+        <SessionBar 
+          key={`session-${sessionNum}`}
+          sessionNum={sessionNum}
+          historyIndex={historyIndex}
+          sessionHistory={sessionHistory}
+          pomodoroLength={pomodoroLength}
+          breakLength={breakLength}
+          currentSession={currentSession}
+          currentTimerState={currentUser?.timerState}
+        />
+      );
+      
+      // Check if there's a dead time gap after this session
+      const gapAfterThisSession = deadTimeGaps.find(gap => gap.afterSessionIndex === historyIndex);
+      if (gapAfterThisSession) {
+        elements.push(
+          <DeadTimeBar
+            key={`deadtime-${historyIndex}`}
+            duration={gapAfterThisSession.duration}
+            gapIndex={historyIndex}
+          />
+        );
+      }
+    }
+    
     return (
       <div className="session-progress-bars">
-        {Array.from({ length: totalBars }, (_, index) => {
-          const sessionNum = index + 1;
-          const historyIndex = index;
-          
-          return (
-            <SessionBar 
-              key={sessionNum}
-              sessionNum={sessionNum}
-              historyIndex={historyIndex}
-              sessionHistory={sessionHistory}
-              pomodoroLength={pomodoroLength}
-              breakLength={breakLength}
-              currentSession={currentSession}
-              currentTimerState={currentUser?.timerState}
-            />
-          );
-        })}
+        {elements}
       </div>
     );
   };

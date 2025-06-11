@@ -6,6 +6,7 @@ const cors = require('cors');
 const config = require('./config');
 const { Room } = require('./models');
 const routes = require('./routes');
+const adminRoutes = require('./routes/admin');
 const { initializeSocketHandlers } = require('./sockets/socketHandlers');
 
 const app = express();
@@ -22,11 +23,14 @@ app.use(express.json());
 const rooms = new Map(); // roomId -> room data
 const users = new Map(); // socketId -> user data
 
-// Make rooms and io available to routes
+// Make rooms, users and io available to routes
 app.locals.rooms = rooms;
+app.locals.users = users;
 app.locals.io = io;
 
-// Routes
+// Routes - Admin routes must be registered BEFORE the main routes
+// because main routes has a catch-all 404 handler
+app.use('/api/admin', adminRoutes);
 app.use('/', routes);
 
 // Initialize Socket.io handlers

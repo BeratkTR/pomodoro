@@ -57,6 +57,15 @@ class UserStore {
       user.totalBreakTime = userData.totalBreakTime;
     }
     
+    // Restore daily tracking data
+    if (userData.lastResetDate !== undefined) {
+      user.lastResetDate = userData.lastResetDate;
+    }
+    
+    if (userData.dailyHistory !== undefined) {
+      user.dailyHistory = userData.dailyHistory || {};
+    }
+    
     // Restore lastActivity if available
     if (userData.lastActivity !== undefined) {
       user.lastActivity = userData.lastActivity;
@@ -71,6 +80,12 @@ class UserStore {
           ? user.settings.pomodoro * 60 
           : user.settings.break * 60
       };
+    }
+    
+    // After restoring, check if we need to reset for a new day
+    const wasReset = user.checkAndResetDaily();
+    if (wasReset) {
+      console.log(`Daily reset occurred during restoration for ${user.name}`);
     }
     
     console.log(`Restored user data for ${user.name} - Work: ${user.totalWorkTime}m, Break: ${user.totalBreakTime}m`);

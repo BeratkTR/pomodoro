@@ -111,6 +111,17 @@ body {
   transform: translateY(-1px);
 }
 
+.admin-btn {
+  background: linear-gradient(135deg, #6f42c1 0%, #8e44ad 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.admin-btn:hover {
+  background: linear-gradient(135deg, #7952cc 0%, #9b4dbb 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+}
+
 .menu-btn {
   padding: 8px 10px;
 }
@@ -612,6 +623,40 @@ body {
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
 }
 
+.skip-btn:disabled,
+.skip-btn.disabled {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.skip-btn:disabled:hover,
+.skip-btn.disabled:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: none;
+  box-shadow: none;
+}
+
+.skip-to-focus-btn:disabled,
+.skip-to-focus-btn.disabled {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.skip-to-focus-btn:disabled:hover,
+.skip-to-focus-btn.disabled:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: none;
+  box-shadow: none;
+}
+
 #setting-reset-btn {
   padding: 12px 20px;
 }
@@ -675,6 +720,17 @@ body {
   font-size: 16px;
   font-weight: 600;
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.partner-name-display.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.partner-name-display.clickable:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
 }
 
 .partner-status-container {
@@ -993,9 +1049,63 @@ body {
   transition: background-color 0.3s ease;
 }
 
+/* Partial session styling - diagonal stripe pattern */
+.session-bar.completed.partial .bar-fill {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.1) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+  position: relative;
+}
+
+.session-bar.completed.partial.pomodoro .bar-fill {
+  background: repeating-linear-gradient(
+    45deg,
+    #10b981,
+    #10b981 3px,
+    rgba(16, 185, 129, 0.3) 3px,
+    rgba(16, 185, 129, 0.3) 6px
+  );
+}
+
+.session-bar.completed.partial.break .bar-fill {
+  background: repeating-linear-gradient(
+    45deg,
+    #3b82f6,
+    #3b82f6 3px,
+    rgba(59, 130, 246, 0.3) 3px,
+    rgba(59, 130, 246, 0.3) 6px
+  );
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+/* Dead time bar styling */
+.session-bar.dead-time {
+  background: rgba(128, 128, 128, 0.3);
+  height: 6px;
+  margin: 1px 0;
+}
+
+.session-bar.dead-time .bar-fill {
+  background: rgba(128, 128, 128, 0.5);
+  border-radius: 3px;
+}
+
+.session-bar.dead-time:hover {
+  background: rgba(128, 128, 128, 0.4);
+  height: 8px;
+  transform: translateY(-1px);
+}
+
+.session-bar.dead-time:hover .bar-fill {
+  background: rgba(128, 128, 128, 0.6);
 }
 
 @keyframes slideIn {
@@ -2083,6 +2193,214 @@ body {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
+/* Admin Panel */
+.admin-panel-modal {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  width: 95%;
+  max-width: 1200px;
+  max-height: 85vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  color: #333;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-tabs {
+  display: flex;
+  border-bottom: 2px solid #eee;
+  background: #f8f9fa;
+}
+
+.admin-tabs .tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 15px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+  border-bottom: 3px solid transparent;
+}
+
+.admin-tabs .tab-btn.active {
+  color: #d63a3a;
+  border-bottom-color: #d63a3a;
+  background: white;
+}
+
+.admin-tabs .tab-btn:hover:not(.active) {
+  background: #e9ecef;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-table th {
+  background: #f8f9fa;
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.admin-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #dee2e6;
+  vertical-align: middle;
+}
+
+.admin-table tr:hover {
+  background: #f8f9fa;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.online {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.offline {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.edit-btn, .delete-btn, .save-btn, .cancel-btn, .refresh-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: all 0.2s ease;
+}
+
+.edit-btn {
+  background: #007bff;
+  color: white;
+}
+
+.edit-btn:hover {
+  background: #0056b3;
+}
+
+.delete-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #c82333;
+}
+
+.save-btn {
+  background: #28a745;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #218838;
+}
+
+.cancel-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #545b62;
+}
+
+.refresh-btn {
+  background: #17a2b8;
+  color: white;
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+.refresh-btn:hover {
+  background: #138496;
+}
+
+.edit-form {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.edit-form .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-form label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.edit-form input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.edit-form input:focus {
+  outline: none;
+  border-color: #d63a3a;
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.admin-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #dee2e6;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: center;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+  color: #666;
+}
+
 /* Personal Stats Modal */
 .personal-stats-modal {
   max-width: 650px;
@@ -2155,4 +2473,121 @@ body {
   font-size: 14px;
   font-weight: 600;
   color: white;
+}
+
+/* Stats Modal Tabs */
+.stats-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.stats-tabs .tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.stats-tabs .tab-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.stats-tabs .tab-btn.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-weight: 600;
+}
+
+/* History Section Styles */
+.history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.no-history-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.no-history-message p {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+}
+
+.no-history-message p:last-child {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.history-dates h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: white;
+}
+
+.date-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.date-btn {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.date-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.date-btn.active {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: white;
+  font-weight: 600;
+}
+
+.historical-stats {
+  margin-top: 20px;
+}
+
+.historical-stats h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: white;
+  font-weight: 600;
+}
+
+.no-sessions-message {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-style: italic;
 }

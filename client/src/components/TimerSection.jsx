@@ -142,9 +142,10 @@ const TimerSection = ({ timerState, settings, onStart, onPause, onReset, onModeC
 
           {timerState.mode === 'pomodoro' && onSkipToBreak && (
             <button 
-              className="timer-btn skip-btn"
-              onClick={onSkipToBreak}
-              title="Skip to break (keeps accumulated work time)"
+              className={`timer-btn skip-btn ${!isSessionInProgress() ? 'disabled' : ''}`}
+              onClick={isSessionInProgress() ? onSkipToBreak : undefined}
+              disabled={!isSessionInProgress()}
+              title={isSessionInProgress() ? "Skip to break (keeps accumulated work time)" : "Start the timer first to enable skip"}
             >
               →
             </button>
@@ -152,9 +153,10 @@ const TimerSection = ({ timerState, settings, onStart, onPause, onReset, onModeC
 
           {timerState.mode === 'break' && onSkipToFocus && (
             <button 
-              className="timer-btn skip-to-focus-btn"
-              onClick={onSkipToFocus}
-              title="Skip to focus (keeps accumulated break time)"
+              className={`timer-btn skip-to-focus-btn ${!isSessionInProgress() ? 'disabled' : ''}`}
+              onClick={isSessionInProgress() ? onSkipToFocus : undefined}
+              disabled={!isSessionInProgress()}
+              title={isSessionInProgress() ? "Skip to focus (keeps accumulated break time)" : "Start the timer first to enable skip"}
             >
               →
             </button>

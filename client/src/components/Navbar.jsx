@@ -1,10 +1,15 @@
 import React, { useState} from 'react';
 import SettingsModal from './SettingsModal';
 import PersonalStatsModal from './PersonalStatsModal';
+import AdminPanel from './AdminPanel';
 
 const Navbar = ({ setPomodoroSettings, userName, currentSettings, onLeaveRoom, onUpdateUserName, currentUser }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showPersonalStats, setShowPersonalStats] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  
+  // Check if user has admin privileges
+  const isAdmin = localStorage.getItem('admin') === 'true';
 
   return (
     <>
@@ -21,6 +26,16 @@ const Navbar = ({ setPomodoroSettings, userName, currentSettings, onLeaveRoom, o
             <span className="btn-icon">⚙️</span>
             Setting
           </button>
+
+          {isAdmin && (
+            <button 
+              className="nav-btn admin-btn"
+              onClick={() => setShowAdminPanel(true)}
+            >
+              <span className="btn-icon">🛡️</span>
+              Admin
+            </button>
+          )}
 
           {userName && (
             <div 
@@ -54,6 +69,12 @@ const Navbar = ({ setPomodoroSettings, userName, currentSettings, onLeaveRoom, o
         <PersonalStatsModal 
           onClose={() => setShowPersonalStats(false)}
           currentUser={currentUser}
+        />
+      )}
+
+      {showAdminPanel && (
+        <AdminPanel 
+          onClose={() => setShowAdminPanel(false)}
         />
       )}
     </>

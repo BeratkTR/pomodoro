@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatLastActive } from '../utils/timeUtils';
+import DeadTimeBar from './DeadTimeBar';
+import { calculateDeadTimeGaps } from '../utils/deadTimeUtils';
 
 // Session bar component with tooltip - memoized to prevent unnecessary re-renders
 const SessionBar = React.memo(({ 
@@ -22,27 +24,17 @@ const SessionBar = React.memo(({
     return `${Math.round(minutes)}m`;
   };
   
-  // Calculate the width based on duration ranges (tiered system)
+  // Calculate the width based on duration (smooth scaling - consistent with SessionProgress)
   const calculateBarWidth = (durationMinutes) => {
-    // Tiered scaling system
-    if (durationMinutes <= 5) return 15;      // 0-5 min
-    if (durationMinutes <= 10) return 20;     // 5-10 min
-    if (durationMinutes <= 15) return 25;     // 10-15 min
-    if (durationMinutes <= 20) return 30;     // 15-20 min
-    if (durationMinutes <= 25) return 35;     // 20-25 min
-    if (durationMinutes <= 30) return 40;     // 25-30 min
-    if (durationMinutes <= 35) return 45;     // 30-35 min
-    if (durationMinutes <= 40) return 50;     // 35-40 min
-    if (durationMinutes <= 45) return 55;     // 40-45 min
-    if (durationMinutes <= 50) return 60;     // 45-50 min
-    if (durationMinutes <= 55) return 65;     // 50-55 min
-    if (durationMinutes <= 60) return 70;     // 55-60 min
-    return 75; // 60+ min (maximum)
+    const minWidth = 20;
+    const maxWidth = 60;
+    const minDuration = 5;
+    const maxDuration = 120;
     
-    // Alternative: More precise 5-minute increments
-    // const tier = Math.ceil(durationMinutes / 5);
-    // const width = 15 + (tier - 1) * 5;
-    // return Math.min(width, 75); // Cap at 75px
+    const clampedDuration = Math.max(minDuration, Math.min(maxDuration, durationMinutes));
+    const normalizedDuration = (clampedDuration - minDuration) / (maxDuration - minDuration);
+    
+    return minWidth + (normalizedDuration * (maxWidth - minWidth));
   };
   
   // Helper function to get the tier description for debugging
@@ -69,7 +61,8 @@ const SessionBar = React.memo(({
   if (historyIndex < sessionHistory.length) {
     const sessionType = sessionHistory[historyIndex].type;
     const sessionData = sessionHistory[historyIndex];
-    barClass += ` completed ${sessionType}`;
+    const isPartial = sessionData.isPartial;
+    barClass += ` completed ${sessionType}${isPartial ? ' partial' : ''}`;
     
     // For completed sessions, use the actual duration that was completed
     // If duration is stored in session history, use that; otherwise fall back to current settings
@@ -77,7 +70,7 @@ const SessionBar = React.memo(({
     tooltipText = `${formatBubbleDuration(sessionDuration)}`;
     barWidth = calculateBarWidth(sessionDuration);
     
-    console.log(`✅ Completed session ${sessionNum}: type=${sessionType}, actualDuration=${sessionDuration}min, tier=${getTierDescription(sessionDuration)}, width=${barWidth}px`);
+    console.log(`✅ Completed session ${sessionNum}: type=${sessionType}, actualDuration=${sessionDuration}min, tier=${getTierDescription(sessionDuration)}, width=${barWidth}px, isPartial=${isPartial}`);
   } else if (sessionNum === currentSession) {
     // Current session - show as yellow/pending with pulse
     barClass += ' current';
@@ -86,7 +79,9 @@ const SessionBar = React.memo(({
     if (currentTimerState) {
       const totalTime = currentTimerState.mode === 'pomodoro' ? pomodoroLength * 60 : breakLength * 60;
       const elapsedSeconds = totalTime - currentTimerState.timeLeft;
-      const elapsedMinutes = elapsedSeconds / 60;
+      // Cap elapsed time to not exceed expected duration
+      const cappedElapsedSeconds = Math.min(elapsedSeconds, totalTime);
+      const elapsedMinutes = Math.max(0, cappedElapsedSeconds / 60);
       
       tooltipText = `${formatBubbleDuration(elapsedMinutes)}`;
       barWidth = calculateBarWidth(elapsedMinutes);
@@ -131,7 +126,7 @@ const SessionBar = React.memo(({
   );
 });
 
-const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) => {
+const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, onShowPartnerStats }) => {
   // State to force re-render for live updates
   const [, setUpdateTrigger] = useState(0);
   
@@ -174,17 +169,18 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) 
     };
   }, [users, currentUserId]);
 
-  // Format time function as minutes:seconds (e.g., 3:01 for 3 minutes 1 second)
+  // Format time function as hours:minutes:seconds (e.g., 1:45:12 for 1 hour 45 minutes 12 seconds)
   const formatDuration = (totalMinutes) => {
-    const minutes = Math.floor(totalMinutes);
-    const seconds = Math.round((totalMinutes - minutes) * 60);
+    const totalSeconds = Math.round(totalMinutes * 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
     
-    // Handle case where seconds round to 60
-    if (seconds >= 60) {
-      return `${minutes + 1}:00`;
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
-    
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   // Format time for timer display
@@ -220,7 +216,9 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) 
       // Calculate elapsed time in current session
       const totalTime = timerState.mode === 'pomodoro' ? pomodoroLength * 60 : breakLength * 60;
       const elapsedSeconds = totalTime - timerState.timeLeft;
-      currentSessionTime = elapsedSeconds / 60;
+      // Cap elapsed time to not exceed expected duration
+      const cappedElapsedSeconds = Math.min(elapsedSeconds, totalTime);
+      currentSessionTime = Math.max(0, cappedElapsedSeconds / 60);
     }
     
     // For display: always show accumulated time + current session time (whether active or paused)
@@ -239,6 +237,7 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) 
     // Only show bars up to current session, starting with 1 bar minimum
     const totalBars = Math.max(1, currentSession);
     const sessionHistory = partner?.sessionHistory || [];
+    const deadTimeGaps = calculateDeadTimeGaps(sessionHistory);
     
     // Get partner timer settings
     const pomodoroLength = partner?.settings?.pomodoro || 50;
@@ -248,25 +247,47 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) 
     console.log(`🔍 SETTINGS DEBUG - Pomodoro: ${pomodoroLength}min, Break: ${breakLength}min`);
     console.log(`🔍 SESSION HISTORY:`, sessionHistory);
     
+    // Debug logging for dead time gaps
+    if (deadTimeGaps.length > 0) {
+      console.log('🔍 Partner dead time gaps found:', deadTimeGaps);
+    }
+    
+    const elements = [];
+    
+    for (let index = 0; index < totalBars; index++) {
+      const sessionNum = index + 1;
+      const historyIndex = index;
+      
+      // Add session bar
+      elements.push(
+        <SessionBar 
+          key={`session-${sessionNum}`}
+          sessionNum={sessionNum}
+          historyIndex={historyIndex}
+          sessionHistory={sessionHistory}
+          pomodoroLength={pomodoroLength}
+          breakLength={breakLength}
+          currentSession={currentSession}
+          currentTimerState={partner?.timerState}
+        />
+      );
+      
+      // Check if there's a dead time gap after this session
+      const gapAfterThisSession = deadTimeGaps.find(gap => gap.afterSessionIndex === historyIndex);
+      if (gapAfterThisSession) {
+        elements.push(
+          <DeadTimeBar
+            key={`deadtime-${historyIndex}`}
+            duration={gapAfterThisSession.duration}
+            gapIndex={historyIndex}
+          />
+        );
+      }
+    }
+    
     return (
       <div className="session-progress-bars">
-        {Array.from({ length: totalBars }, (_, index) => {
-          const sessionNum = index + 1;
-          const historyIndex = index;
-          
-          return (
-            <SessionBar 
-              key={sessionNum}
-              sessionNum={sessionNum}
-              historyIndex={historyIndex}
-              sessionHistory={sessionHistory}
-              pomodoroLength={pomodoroLength}
-              breakLength={breakLength}
-              currentSession={currentSession}
-              currentTimerState={partner?.timerState}
-            />
-          );
-        })}
+        {elements}
       </div>
     );
   };
@@ -287,8 +308,8 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) 
       : breakLength * 60;
     const sessionInProgress = timerState.timeLeft < fullDuration;
     
-    // Determine if partner is doing "nothing" (timer not started and in pomodoro mode)
-    const isDoingNothing = !sessionInProgress && timerState.mode === 'pomodoro';
+    // Determine if partner is doing "nothing" (timer not started in any mode)
+    const isDoingNothing = !sessionInProgress;
     
     // Determine border color based on partner's timer state
     let borderStyle = '1px solid rgba(255, 255, 255, 0.1)'; // Default border
@@ -348,7 +369,13 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom }) 
       {partner ? (
         <div className={`partner-stats-section ${partner.status === 'offline' ? 'offline' : ''}`}>
           <div className="partner-header">
-            <div className="partner-name-display"><span style={{marginRight: '6px'}}>👤</span>{partner.name}</div>
+            <div 
+              className="partner-name-display clickable" 
+              onClick={() => onShowPartnerStats && onShowPartnerStats(partner)}
+              title="View partner's statistics"
+            >
+              <span style={{marginRight: '6px'}}>👤</span>{partner.name}
+            </div>
             <div className="partner-status-container">
               {partner.status === 'offline' ? (
                 <div className="last-active-tag">

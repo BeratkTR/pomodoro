@@ -114,8 +114,10 @@ export const setupSocketListeners = (
         totalBreakTime: data.totalBreakTime
       }))
       
-      // Play timer end sound
-      soundService.playTimerEndSound()
+      // Play timer end sound only if timer completed naturally (not skipped)
+      if (!data.wasSkipped) {
+        soundService.playTimerEndSound()
+      }
       
       // Note: permission modal check hidden for now
       // if (checkPermissionModal) {
