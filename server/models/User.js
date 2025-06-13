@@ -69,15 +69,60 @@ class User {
     if (this.lastResetDate !== currentDate) {
       console.log(`NEW DAY DETECTED for ${this.name}: Last reset was ${this.lastResetDate}, current date is ${currentDate}`);
       
-      // Save current day's data to history before resetting
-      if (this.lastResetDate && (this.totalWorkTime > 0 || this.totalBreakTime > 0 || this.completedSessions > 0)) {
+      // Handle any remaining time from active timer before resetting
+      let additionalWorkTime = 0;
+      let additionalBreakTime = 0;
+      
+      if (this.timerState && (this.timerState.isActive || this.timerState.timeLeft < (this.timerState.mode === 'pomodoro' ? this.settings.pomodoro * 60 : this.settings.break * 60))) {
+        const totalTime = this.timerState.mode === 'pomodoro' ? this.settings.pomodoro * 60 : this.settings.break * 60;
+        const elapsedTime = totalTime - this.timerState.timeLeft;
+        const elapsedMinutes = Math.max(0, elapsedTime / 60);
+        
+        if (elapsedMinutes > 0) {
+          if (this.timerState.mode === 'pomodoro') {
+            additionalWorkTime = elapsedMinutes;
+            console.log(`END OF DAY: ${this.name} - Adding ${elapsedMinutes}m of remaining work time to previous day`);
+          } else {
+            additionalBreakTime = elapsedMinutes;
+            console.log(`END OF DAY: ${this.name} - Adding ${elapsedMinutes}m of remaining break time to previous day`);
+          }
+          
+          // Add partial session to history for the previous day
+          this.sessionHistory.push({
+            type: this.timerState.mode,
+            duration: elapsedMinutes,
+            completedAt: Date.now(),
+            isPartial: true,
+            isEndOfDay: true // Mark as end-of-day partial session
+          });
+        }
+      }
+      
+      // Save current day's data to history before resetting (including any additional time from active timer)
+      if (this.lastResetDate && (this.totalWorkTime + additionalWorkTime > 0 || this.totalBreakTime + additionalBreakTime > 0 || this.completedSessions > 0)) {
         this.dailyHistory[this.lastResetDate] = {
-          totalWorkTime: this.totalWorkTime,
-          totalBreakTime: this.totalBreakTime,
+          totalWorkTime: this.totalWorkTime + additionalWorkTime,
+          totalBreakTime: this.totalBreakTime + additionalBreakTime,
           completedSessions: this.completedSessions,
           sessionHistory: [...this.sessionHistory] // Make a copy
         };
-        console.log(`Saved data for ${this.lastResetDate}: ${this.totalWorkTime}m work, ${this.totalBreakTime}m break, ${this.completedSessions} sessions`);
+        console.log(`Saved data for ${this.lastResetDate}: ${this.totalWorkTime + additionalWorkTime}m work, ${this.totalBreakTime + additionalBreakTime}m break, ${this.completedSessions} sessions`);
+      }
+      
+      // Reset timer state when day changes
+      if (this.timerState) {
+        // Stop any active timer
+        this.timerState.isActive = false;
+        if (this.timerInterval) {
+          clearInterval(this.timerInterval);
+          this.timerInterval = null;
+        }
+        
+        // Reset timer to initial state
+        this.timerState.mode = 'pomodoro';
+        this.timerState.timeLeft = this.settings.pomodoro * 60;
+        this.timerState.currentSession = 1;
+        console.log(`END OF DAY: ${this.name} - Timer reset to initial state`);
       }
       
       // Reset daily stats
@@ -85,7 +130,6 @@ class User {
       this.totalBreakTime = 0;
       this.completedSessions = 0;
       this.sessionHistory = [];
-      this.timerState.currentSession = 1;
       
       // Update last reset date
       this.lastResetDate = currentDate;
@@ -534,6 +578,30 @@ class User {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
     }
+  }
+
+  // Helper method for testing/debugging - manually trigger day reset
+  // This can be useful for testing the end-of-day functionality without waiting for midnight
+  forceResetDaily(io = null, roomId = null) {
+    console.log(`FORCE RESET: ${this.name} - Manually triggering daily reset`);
+    
+    // Temporarily modify the last reset date to trigger reset
+    const originalDate = this.lastResetDate;
+    this.lastResetDate = 'force-reset-' + new Date().getTime();
+    
+    // Call the normal reset logic
+    const wasReset = this.checkAndResetDaily();
+    
+    if (wasReset && io && roomId) {
+      // Broadcast the reset to update clients
+      io.to(roomId).emit('user_updated', {
+        userId: this.id,
+        userData: this.getUserData()
+      });
+      console.log(`FORCE RESET: ${this.name} - Broadcasted reset to room ${roomId}`);
+    }
+    
+    return wasReset;
   }
 }
 

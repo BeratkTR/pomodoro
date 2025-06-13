@@ -43,6 +43,10 @@ const ChatWidget = ({
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [showJumpToBottom, setShowJumpToBottom] = useState(false)
   const scrollTimeoutRef = useRef(null)
+  const [typingUsers, setTypingUsers] = useState([])
+  const [typingUsersToRemove, setTypingUsersToRemove] = useState([])
+  const typingTimeoutRef = useRef(null)
+  const isTypingRef = useRef(false)
 
 
 
@@ -103,7 +107,7 @@ const ChatWidget = ({
     }
   }, [isOpen, onToggle])
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or typing indicator changes
   useEffect(() => {
     if (messages.length > 0) {
       // Only adjust displayedMessageCount if we're currently showing recent messages
@@ -125,6 +129,19 @@ const ChatWidget = ({
     }
   }, [messages.length, displayedMessageCount, scrollToBottom])
 
+  // Auto-scroll when typing indicator appears/disappears
+  useEffect(() => {
+    if (messagesContainerRef.current && typingUsers.length >= 0) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100
+      
+      // If user is near bottom, auto-scroll when typing indicator changes
+      if (isNearBottom) {
+        setTimeout(() => scrollToBottom(true), 50)
+      }
+    }
+  }, [typingUsers.length, scrollToBottom])
+
   useEffect(() => {
     if (isOpen) {
       onMarkAsRead()
@@ -140,12 +157,128 @@ const ChatWidget = ({
     }
   }, [isOpen, onMarkAsRead, scrollToBottom])
 
+  // Handle typing indicator events
+  useEffect(() => {
+    const handleTypingStart = (data) => {
+      // Don't show typing indicator for own messages
+      if (data.userId === currentUser.id) return;
+      
+      setTypingUsers(prev => {
+        if (!prev.some(user => user.userId === data.userId)) {
+          return [...prev, { userId: data.userId, userName: data.userName }];
+        }
+        return prev;
+      });
+    };
+
+    const handleTypingStop = (data) => {
+      // Add to removal list for fade-out animation
+      setTypingUsersToRemove(prev => [...prev, data.userId]);
+      
+      // Remove after animation completes
+      setTimeout(() => {
+        setTypingUsers(prev => prev.filter(user => user.userId !== data.userId));
+        setTypingUsersToRemove(prev => prev.filter(id => id !== data.userId));
+      }, 150); // Match CSS transition duration
+    };
+
+    socketService.on('user_typing_start', handleTypingStart);
+    socketService.on('user_typing_stop', handleTypingStop);
+
+    return () => {
+      socketService.off('user_typing_start', handleTypingStart);
+      socketService.off('user_typing_stop', handleTypingStop);
+    };
+  }, [currentUser.id])
+
+  // Handle typing timeout - automatically stop typing after 3 seconds of inactivity
+  const handleTypingTimeout = useCallback(() => {
+    if (isTypingRef.current) {
+      socketService.stopTyping();
+      isTypingRef.current = false;
+    }
+  }, [])
+
+  // Handle input changes for typing indicator
+  const handleInputChange = useCallback((e) => {
+    const value = e.target.value;
+    setMessageText(value);
+
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+
+    // If user is typing and not already marked as typing
+    if (value.trim() && !isTypingRef.current) {
+      // Small delay to avoid rapid start/stop when typing immediately after sending
+      setTimeout(() => {
+        if (value.trim() && !isTypingRef.current) {
+          socketService.startTyping();
+          isTypingRef.current = true;
+        }
+      }, 50);
+    }
+
+    // Set timeout to stop typing
+    if (value.trim()) {
+      typingTimeoutRef.current = setTimeout(handleTypingTimeout, 1000);
+    } else {
+      // If input is empty, stop typing immediately
+      if (isTypingRef.current) {
+        socketService.stopTyping();
+        isTypingRef.current = false;
+      }
+    }
+  }, [handleTypingTimeout])
+
+  // Cleanup typing state when component unmounts or chat closes
+  useEffect(() => {
+    return () => {
+      if (isTypingRef.current) {
+        socketService.stopTyping();
+        isTypingRef.current = false;
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [])
+
+  // Stop typing when chat closes
+  useEffect(() => {
+    if (!isOpen && isTypingRef.current) {
+      socketService.stopTyping();
+      isTypingRef.current = false;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    }
+  }, [isOpen])
+
   const handleSendMessage = (e) => {
     e.preventDefault()
     const trimmedMessage = messageText.trim()
     if (trimmedMessage && trimmedMessage.length > 0) {
+      // Stop typing when sending message
+      if (isTypingRef.current) {
+        socketService.stopTyping()
+        isTypingRef.current = false
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+        typingTimeoutRef.current = null
+      }
+      
       onSendMessage(trimmedMessage)
       setMessageText('')
+      
+      // Focus back to input for immediate typing
+      setTimeout(() => {
+        chatInputRef.current?.focus()
+      }, 10)
+      
       // Always scroll to bottom when user sends a message and show recent messages
       setDisplayedMessageCount(Math.min(50, messages.length))
       setTimeout(() => scrollToBottom(true), 50)
@@ -271,6 +404,24 @@ const ChatWidget = ({
               ) : (
                 <>
                   {messageList}
+                  {/* Typing indicator */}
+                  {typingUsers.length > 0 && (
+                    <div className="typing-indicator">
+                      <div className={`typing-indicator-content ${typingUsersToRemove.some(id => typingUsers.some(user => user.userId === id)) ? 'fade-out' : ''}`}>
+                        <div className="typing-dots">
+                          <span></span>
+                          <span></span>
+                          <span></span>
+                        </div>
+                        <span className="typing-text">
+                          {typingUsers.length === 1 
+                            ? `${typingUsers[0].userName} is writing...`
+                            : `${typingUsers.map(u => u.userName).join(', ')} are writing...`
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </>
               )}
@@ -296,7 +447,7 @@ const ChatWidget = ({
                 ref={chatInputRef}
                 type="text"
                 value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
+                onChange={handleInputChange}
                 placeholder="Type a message..."
                 className="chat-input"
                 maxLength={500}

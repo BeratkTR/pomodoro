@@ -40,7 +40,7 @@ async function testPersistence() {
     console.log('4. Checking if persistence files exist...');
     const fs = require('fs');
     const path = require('path');
-    const dataDir = path.join(__dirname, '..', 'data');
+    const dataDir = path.join(__dirname, '..', '..', 'data');
     const roomsFile = path.join(dataDir, 'rooms.json');
     const usersFile = path.join(dataDir, 'users.json');
     

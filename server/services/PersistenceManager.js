@@ -3,7 +3,7 @@ const path = require('path');
 
 class PersistenceManager {
   constructor() {
-    this.dataDir = path.join(__dirname, '..', 'data');
+    this.dataDir = path.join(__dirname, '..', '..', 'data');
     this.roomsFile = path.join(this.dataDir, 'rooms.json');
     this.usersFile = path.join(this.dataDir, 'users.json');
     this.ensureDataDirectory();

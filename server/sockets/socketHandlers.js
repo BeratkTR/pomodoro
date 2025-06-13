@@ -385,6 +385,35 @@ function initializeSocketHandlers(io, rooms, users) {
       triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
     });
 
+    // Handle force day reset (for testing/debugging)  ----------------------------------------------
+    socket.on('force_reset_daily', () => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      const userInstance = room.getUser(user.id);
+      if (!userInstance) return;
+
+      // Only allow for online users
+      if (userInstance.status !== 'online') {
+        console.log(`Blocked force daily reset for offline user ${userInstance.name}`);
+        return;
+      }
+
+      console.log(`Force daily reset requested by ${userInstance.name}`);
+      const wasReset = userInstance.forceResetDaily(io, user.roomId);
+      
+      if (wasReset) {
+        console.log(`Force daily reset completed for ${userInstance.name}`);
+        // Immediate persistence save for reset
+        triggerPersistenceSave(rooms, userStore, 1000);
+      } else {
+        console.log(`Force daily reset failed for ${userInstance.name}`);
+      }
+    });
+
     // Handle individual settings update  ----------------------------------------------
     socket.on('update_settings', (newSettings) => {
       const user = users.get(socket.id);
@@ -596,6 +625,45 @@ function initializeSocketHandlers(io, rooms, users) {
       }
     });
 
+    // Handle typing indicators  ----------------------------------------------
+    socket.on('typing_start', (data) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      const userInstance = room.getUser(user.id);
+      if (!userInstance) return;
+
+      // Notify other users in the room that this user started typing
+      socket.to(user.roomId).emit('user_typing_start', {
+        userId: user.id,
+        userName: userInstance.name
+      });
+
+      console.log(`User ${userInstance.name} started typing in room ${room.name}`);
+    });
+
+    socket.on('typing_stop', (data) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      const userInstance = room.getUser(user.id);
+      if (!userInstance) return;
+
+      // Notify other users in the room that this user stopped typing
+      socket.to(user.roomId).emit('user_typing_stop', {
+        userId: user.id,
+        userName: userInstance.name
+      });
+
+      console.log(`User ${userInstance.name} stopped typing in room ${room.name}`);
+    });
+
     // Handle disconnect  ----------------------------------------------
     socket.on('disconnect', () => {
       const user = users.get(socket.id);
@@ -607,6 +675,11 @@ function initializeSocketHandlers(io, rooms, users) {
           // Update user status to offline (don't remove immediately)
           const userInstance = room.getUser(user.id);
           if (userInstance) {
+            // Stop typing indicator when user disconnects
+            socket.to(user.roomId).emit('user_typing_stop', {
+              userId: user.id,
+              userName: userInstance.name
+            });
             // Pause timer if it's running when user goes offline
             if (userInstance.timerState.isActive) {
               userInstance.pauseTimer(io, user.roomId);

@@ -13,8 +13,8 @@ The persistence system saves the following data:
 
 ### 1. Automatic Data Loading
 When the server starts, it automatically:
-- Loads all user data from `server/data/users.json`
-- Loads all room data from `server/data/rooms.json`
+- Loads all user data from `data/users.json`
+- Loads all room data from `data/rooms.json`
 - Restores user-room associations
 - Preserves chat history and session statistics
 
@@ -48,10 +48,10 @@ When the server starts after a sudden stop (crash, power loss):
 ## File Structure
 
 ```
+data/                        # Persistence data directory (auto-created)
+├── rooms.json              # Room data and chat history
+└── users.json              # User data and statistics
 server/
-├── data/                    # Persistence data directory (auto-created)
-│   ├── rooms.json          # Room data and chat history
-│   └── users.json          # User data and statistics
 ├── services/
 │   ├── PersistenceManager.js   # Main persistence logic
 │   ├── UserStore.js           # Enhanced with persistence
@@ -188,7 +188,7 @@ const estimatedRunTime = Math.min(timeSinceLastSave * 0.5, user.timerState.timeL
 ## Troubleshooting
 
 ### Data Not Persisting
-1. Check if `server/data/` directory is writable
+1. Check if `data/` directory is writable
 2. Look for error messages in server logs
 3. Verify no file permission issues
 4. Use the test script to diagnose issues
@@ -207,7 +207,7 @@ If data files become corrupted:
 
 ## Best Practices
 
-1. **Backup**: Regularly backup the `server/data/` directory
+1. **Backup**: Regularly backup the `data/` directory
 2. **Monitoring**: Monitor server logs for persistence errors  
 3. **Cleanup**: Run periodic cleanup to remove old historical data
 4. **Testing**: Test persistence after major changes using the test script

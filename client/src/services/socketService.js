@@ -107,6 +107,15 @@ class SocketService {
       this.emit('message_status_update', data);
     });
 
+    // Typing indicator events
+    this.socket.on('user_typing_start', (data) => {
+      this.emit('user_typing_start', data);
+    });
+
+    this.socket.on('user_typing_stop', (data) => {
+      this.emit('user_typing_stop', data);
+    });
+
     // Error events
     this.socket.on('error', (data) => {
       this.emit('error', data);
@@ -231,6 +240,19 @@ class SocketService {
   markMessagesAsRead() {
     if (this.socket && this.isConnected) {
       this.socket.emit('mark_messages_read');
+    }
+  }
+
+  // Typing indicator methods
+  startTyping() {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('typing_start');
+    }
+  }
+
+  stopTyping() {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('typing_stop');
     }
   }
 
