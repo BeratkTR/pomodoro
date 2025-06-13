@@ -185,8 +185,9 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
 
   // Format time for timer display
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const totalSeconds = Math.floor(seconds); // Convert to whole seconds
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
