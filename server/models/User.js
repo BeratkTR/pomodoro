@@ -9,6 +9,9 @@ class User {
     this.lastActivity = Date.now();
     this.status = 'online'; // 'online', 'offline'
     
+    // User's timezone (defaults to UTC, will be updated when client connects)
+    this.timezone = 'UTC';
+    
     // Individual timer state
     this.timerState = {
       timeLeft: config.timer.defaultPomodoro * 60,
@@ -54,13 +57,38 @@ class User {
     };
   }
 
-  // Helper method to get current date string in YYYY-MM-DD format
+  // Set user's timezone
+  setTimezone(timezone) {
+    const oldTimezone = this.timezone;
+    this.timezone = timezone;
+    console.log(`Updated timezone for ${this.name}: ${oldTimezone} -> ${timezone}`);
+    
+    // Check if we need to reset with the new timezone
+    const wasReset = this.checkAndResetDaily();
+    return wasReset;
+  }
+
   getCurrentDateString() {
     const now = new Date();
-    return now.getFullYear() + '-' + 
-           String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-           String(now.getDate()).padStart(2, '0');
+    
+    // Use user's timezone to get the correct local date
+    try {
+      // Create date in user's timezone
+      const userDate = new Date(now.toLocaleString("en-US", {timeZone: this.timezone}));
+      
+      return userDate.getFullYear() + '-' + 
+             String(userDate.getMonth() + 1).padStart(2, '0') + '-' + 
+             String(userDate.getDate()).padStart(2, '0');
+    } catch (error) {
+      console.warn(`Invalid timezone ${this.timezone} for user ${this.name}, falling back to UTC`);
+      // Fallback to UTC if timezone is invalid
+      return now.getFullYear() + '-' + 
+             String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+             String(now.getDate()).padStart(2, '0');
+    }
   }
+
+
 
   // Check if it's a new day and reset daily stats if needed
   checkAndResetDaily() {

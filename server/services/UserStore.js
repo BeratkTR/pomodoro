@@ -127,6 +127,11 @@ class UserStore {
       user.dailyHistory = userData.dailyHistory || {};
     }
     
+    // Restore timezone information
+    if (userData.timezone) {
+      user.timezone = userData.timezone;
+    }
+    
     // Restore lastActivity if available
     if (userData.lastActivity !== undefined) {
       user.lastActivity = userData.lastActivity;
@@ -156,7 +161,7 @@ class UserStore {
       console.log(`Daily reset occurred during restoration for ${user.name}`);
     }
     
-    console.log(`Restored user data for ${user.name} - Work: ${user.totalWorkTime}m, Break: ${user.totalBreakTime}m`);
+    console.log(`Restored user data for ${user.name} - Work: ${user.totalWorkTime}m, Break: ${user.totalBreakTime}m, Timezone: ${user.timezone}`);
   }
 
   // Update user in persistent store

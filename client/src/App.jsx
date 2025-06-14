@@ -198,6 +198,49 @@ function App() {
     }
   }, [])
 
+  // Detect and send user's timezone when connection is established
+  useEffect(() => {
+    if (isConnected && currentRoom && currentUser.id) {
+      // Detect user's timezone
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      console.log(`Detected user timezone: ${userTimezone}`);
+      
+      // Send timezone to server
+      socketService.updateTimezone(userTimezone);
+    }
+  }, [isConnected, currentRoom, currentUser.id])
+
+  // Check for timezone changes (in case user travels or changes system timezone)
+  useEffect(() => {
+    const checkTimezone = () => {
+      if (isConnected && currentRoom && currentUser.id) {
+        const currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const storedTimezone = localStorage.getItem('userTimezone');
+        
+        if (storedTimezone !== currentTimezone) {
+          console.log(`Timezone changed from ${storedTimezone} to ${currentTimezone}`);
+          localStorage.setItem('userTimezone', currentTimezone);
+          socketService.updateTimezone(currentTimezone);
+        }
+      }
+    };
+
+    // Check timezone every 30 minutes (in case it changes)
+    const interval = setInterval(checkTimezone, 30 * 60 * 1000);
+    
+    // Also check on focus (when user returns to the app)
+    const handleFocus = () => {
+      setTimeout(checkTimezone, 1000); // Small delay to ensure connection is stable
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isConnected, currentRoom, currentUser.id])
+
   const handleJoinRoom = async (roomData) => {
     try {
       const userId = currentUser.id || socketService.getSocketId() || Date.now().toString();

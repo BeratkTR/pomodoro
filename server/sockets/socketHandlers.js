@@ -431,6 +431,36 @@ function initializeSocketHandlers(io, rooms, users) {
       triggerPersistenceSave(rooms, userStore);
     });
 
+    // Handle timezone update  ----------------------------------------------
+    socket.on('update_timezone', (timezone) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      const userInstance = room.getUser(user.id);
+      if (!userInstance) return;
+
+      console.log(`Timezone update from ${userInstance.name}: ${timezone}`);
+      const wasReset = userInstance.setTimezone(timezone);
+      
+      if (wasReset) {
+        console.log(`Daily reset triggered by timezone change for ${userInstance.name}`);
+        // Broadcast the reset to update clients
+        io.to(user.roomId).emit('user_updated', {
+          userId: userInstance.id,
+          userData: userInstance.getUserData()
+        });
+        
+        // Trigger immediate persistence save for reset
+        triggerPersistenceSave(rooms, userStore, 1000);
+      } else {
+        // Just trigger normal persistence save
+        triggerPersistenceSave(rooms, userStore);
+      }
+    });
+
     // Handle user name update  ----------------------------------------------
     socket.on('update_user_name', (data) => {
       const user = users.get(socket.id);

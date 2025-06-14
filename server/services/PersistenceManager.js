@@ -72,6 +72,7 @@ class PersistenceManager {
           joinedAt: user.joinedAt,
           lastActivity: user.lastActivity,
           status: user.status,
+          timezone: user.timezone, // Save user's timezone
           timerState: {
             timeLeft: user.timerState.timeLeft, // Save exact time remaining
             mode: user.timerState.mode,
