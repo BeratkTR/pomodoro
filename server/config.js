@@ -3,7 +3,7 @@ module.exports = {
   cors: {
     origin: [
       "http://18.159.206.201:5173",
-      "http://18.159.206.201:5001 ",
+      "http://18.159.206.201:5001",
     ],
     methods: ["GET", "POST"]
   },
