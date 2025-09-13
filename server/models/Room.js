@@ -22,9 +22,6 @@ class Room {
     // Single timer interval for the entire room
     this.timerInterval = null;
     
-    // Shared clock pulse interval for synchronized individual timers
-    this.sharedClockInterval = null;
-    
     // Timer settings - could be controlled by room creator or voted on
     this.timerSettings = {
       pomodoro: config.timer.defaultPomodoro,
@@ -264,155 +261,8 @@ class Room {
     console.log(`⚙️ TIMER SETTINGS UPDATED for room ${this.name}:`, newSettings);
   }
 
-  // Synchronization logic for individual timers with shared clock pulse
-  getActiveTimers() {
-    const activeUsers = [];
-    this.users.forEach(user => {
-      if (user.timerState.isActive) {
-        activeUsers.push(user);
-      }
-    });
-    return activeUsers;
-  }
-
-  // Check if we should synchronize timers (both users active in same mode)
-  shouldSynchronizeTimers() {
-    const activeTimers = this.getActiveTimers();
-    if (activeTimers.length !== 2) return null;
-    
-    // Only sync if both users are in the same mode (pomodoro/break)
-    const [user1, user2] = activeTimers;
-    if (user1.timerState.mode === user2.timerState.mode) {
-      // Return the user who started first (has less time remaining)
-      return user1.timerState.timeLeft <= user2.timerState.timeLeft ? user1 : user2;
-    }
-    
-    return null;
-  }
-
-  // Synchronize a user's timer to match the master timer
-  synchronizeUserTimer(userToSync, masterUser) {
-    console.log(`🔄 SYNCING: ${userToSync.name} timer to match ${masterUser.name}'s timer`);
-    console.log(`  Before sync - ${userToSync.name}: ${userToSync.timerState.timeLeft}s, ${masterUser.name}: ${masterUser.timerState.timeLeft}s`);
-    
-    // Sync the time and mode
-    userToSync.timerState.timeLeft = masterUser.timerState.timeLeft;
-    userToSync.timerState.mode = masterUser.timerState.mode;
-    
-    console.log(`  After sync - Both timers at: ${userToSync.timerState.timeLeft}s (${userToSync.timerState.mode})`);
-    
-    // Broadcast the sync to clients
-    this.io.to(this.id).emit('user_timer_update', {
-      userId: userToSync.id,
-      timerState: userToSync.timerState
-    });
-  }
-
-  // Check and handle timer synchronization when a user starts their timer
-  handleTimerStart(startingUser) {
-    const masterTimer = this.shouldSynchronizeTimers();
-    
-    if (masterTimer && masterTimer.id !== startingUser.id) {
-      // Synchronize the starting user to the master timer
-      this.synchronizeUserTimer(startingUser, masterTimer);
-      console.log(`🎯 SYNCHRONIZED: ${startingUser.name} synced to ${masterTimer.name}'s clock pulse`);
-      
-      // Start shared clock pulse for both users
-      this.startSharedClockPulse();
-    } else if (masterTimer) {
-      console.log(`⚡ BOTH TIMERS ACTIVE: ${startingUser.name} and partner running in sync`);
-      this.startSharedClockPulse();
-    } else {
-      console.log(`🔧 INDEPENDENT TIMER: ${startingUser.name} running independently`);
-    }
-  }
-
-  // Handle when a user pauses/stops their timer (check for desync)
-  handleTimerStop(stoppingUser) {
-    const activeTimers = this.getActiveTimers();
-    
-    if (activeTimers.length === 1) {
-      const remainingUser = activeTimers[0];
-      console.log(`🔄 DESYNC: ${stoppingUser.name} stopped, ${remainingUser.name} continuing independently`);
-      
-      // Stop shared clock pulse and let remaining user continue independently
-      this.stopSharedClockPulse();
-      
-      // Restart individual timer for remaining user (skip room sync to avoid recursion)
-      remainingUser.startTimer(this.io, this.id, true);
-    } else if (activeTimers.length === 0) {
-      console.log(`⏹️ ALL TIMERS STOPPED in room ${this.name}`);
-      this.stopSharedClockPulse();
-    }
-  }
-
-  // Start shared clock pulse for synchronized users
-  startSharedClockPulse() {
-    // Clear any existing shared pulse
-    this.stopSharedClockPulse();
-    
-    const activeTimers = this.getActiveTimers();
-    if (activeTimers.length !== 2) return;
-    
-    // Stop individual timer intervals for both users
-    activeTimers.forEach(user => {
-      if (user.timerInterval) {
-        clearInterval(user.timerInterval);
-        user.timerInterval = null;
-      }
-    });
-    
-    console.log(`🕘 SHARED CLOCK PULSE STARTED: Both users synchronized at ${activeTimers[0].timerState.timeLeft}s`);
-    
-    // Create shared interval that updates both users
-    this.sharedClockInterval = setInterval(() => {
-      // Decrement time for both users simultaneously
-      activeTimers.forEach(user => {
-        user.timerState.timeLeft--;
-      });
-      
-      // Broadcast update to both users
-      activeTimers.forEach(user => {
-        this.io.to(this.id).emit('user_timer_update', {
-          userId: user.id,
-          timerState: user.timerState
-        });
-      });
-      
-      // Check for completion (use first user's timer state since they're synchronized)
-      const masterUser = activeTimers[0];
-      if (masterUser.timerState.timeLeft <= 0) {
-        console.log(`⏰ SHARED CLOCK PULSE COMPLETE: Both timers finished simultaneously`);
-        
-        // Stop the shared pulse first
-        this.stopSharedClockPulse();
-        
-        // Handle completion for both users (they'll each switch modes and may auto-start)
-        activeTimers.forEach(user => {
-          user.handleTimerComplete(this.io, this.id);
-        });
-        
-        // Check if both users have auto-start enabled for the new mode - if so, start shared pulse again
-        setTimeout(() => {
-          const nowActiveTimers = this.getActiveTimers();
-          if (nowActiveTimers.length === 2 && 
-              nowActiveTimers[0].timerState.mode === nowActiveTimers[1].timerState.mode) {
-            console.log(`🔄 AUTO-RESTARTING SHARED PULSE: Both users auto-started ${nowActiveTimers[0].timerState.mode}`);
-            this.startSharedClockPulse();
-          }
-        }, 100); // Small delay to let auto-start logic complete
-      }
-    }, 1000);
-  }
-
-  // Stop shared clock pulse
-  stopSharedClockPulse() {
-    if (this.sharedClockInterval) {
-      clearInterval(this.sharedClockInterval);
-      this.sharedClockInterval = null;
-      console.log(`🛑 SHARED CLOCK PULSE STOPPED`);
-    }
-  }
+  // Individual timer management - no synchronization
+  // Each user has their own independent timer
 
   // Music control methods
   handleMusicControl(action, userId, data = {}) {
@@ -512,9 +362,6 @@ class Room {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
     }
-    
-    // Clean up shared clock pulse
-    this.stopSharedClockPulse();
     
     // Clean up all users' individual timers (if any remain)
     this.users.forEach(user => {

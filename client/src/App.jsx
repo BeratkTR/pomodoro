@@ -19,9 +19,9 @@ function ProtectedApp() {
     );
   }
 
-  // if (!isAuthenticated) {
-  //   return <AuthWrapper />;
-  // }
+  if (!isAuthenticated) {
+    return <AuthWrapper />;
+  }
 
   return (
     <>

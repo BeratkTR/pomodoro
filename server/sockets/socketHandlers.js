@@ -299,9 +299,6 @@ function initializeSocketHandlers(io, rooms, users) {
       console.log(`Starting individual timer for ${userInstance.name}`);
       userInstance.startTimer(io, room.id);
       
-      // Check for timer synchronization after starting
-      room.handleTimerStart(userInstance);
-      
       // Immediate persistence save for timer state changes
       triggerPersistenceSave(rooms, userStore, 1000);
     });
@@ -334,9 +331,6 @@ function initializeSocketHandlers(io, rooms, users) {
       console.log(`Pausing individual timer for ${userInstance.name}`);
       userInstance.pauseTimer(io, room.id);
       
-      // Check for timer desynchronization after pausing
-      room.handleTimerStop(userInstance);
-      
       // Immediate persistence save for timer state changes
       triggerPersistenceSave(rooms, userStore, 1000);
     });
@@ -359,9 +353,6 @@ function initializeSocketHandlers(io, rooms, users) {
 
       console.log(`Resetting individual timer for ${userInstance.name}`);
       userInstance.resetTimer(io, room.id);
-      
-      // Check for timer desynchronization after resetting (since reset pauses)
-      room.handleTimerStop(userInstance);
       
       // Immediate persistence save for timer state changes
       triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
@@ -386,13 +377,6 @@ function initializeSocketHandlers(io, rooms, users) {
       console.log(`Changing individual timer mode for ${userInstance.name} to ${data.mode}`);
       userInstance.changeMode(data.mode, io, room.id);
       
-      // Check for synchronization after mode change (in case timer restarted)
-      if (userInstance.timerState.isActive) {
-        room.handleTimerStart(userInstance);
-      } else {
-        room.handleTimerStop(userInstance);
-      }
-      
       // Immediate persistence save for timer state changes
       triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
     });
@@ -416,11 +400,6 @@ function initializeSocketHandlers(io, rooms, users) {
       console.log(`Skipping to break for ${userInstance.name}`);
       userInstance.skipToBreak(io, room.id);
       
-      // Check for synchronization after skip (timer continues in new mode)
-      if (userInstance.timerState.isActive) {
-        room.handleTimerStart(userInstance);
-      }
-      
       // Immediate persistence save for timer state changes
       triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
     });
@@ -443,11 +422,6 @@ function initializeSocketHandlers(io, rooms, users) {
 
       console.log(`Skipping to pomodoro for ${userInstance.name}`);
       userInstance.skipToFocus(io, room.id);
-      
-      // Check for synchronization after skip (timer continues in new mode)  
-      if (userInstance.timerState.isActive) {
-        room.handleTimerStart(userInstance);
-      }
       
       // Immediate persistence save for timer state changes
       triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes

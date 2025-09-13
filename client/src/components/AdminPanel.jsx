@@ -43,7 +43,7 @@ const AdminPanel = ({ onClose }) => {
     if (!confirm('Are you sure you want to delete this room?')) return;
     
     try {
-      const response = await fetch(`/api/admin/rooms/${roomId}`, {
+      const response = await fetch(`https://api.beratkaragol.xyz/api/admin/rooms/${roomId}`, {
         method: 'DELETE',
         headers: {
           'X-Admin': 'true'
@@ -51,6 +51,10 @@ const AdminPanel = ({ onClose }) => {
       });
       if (response.ok) {
         setRooms(rooms.filter(room => room.id !== roomId));
+      } else {
+        console.error('Failed to delete room - status:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
       }
     } catch (error) {
       console.error('Failed to delete room:', error);
@@ -61,7 +65,7 @@ const AdminPanel = ({ onClose }) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(`https://api.beratkaragol.xyz/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'X-Admin': 'true'
@@ -69,6 +73,10 @@ const AdminPanel = ({ onClose }) => {
       });
       if (response.ok) {
         setUsers(users.filter(user => user.id !== userId));
+      } else {
+        console.error('Failed to delete user - status:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
       }
     } catch (error) {
       console.error('Failed to delete user:', error);
@@ -78,7 +86,7 @@ const AdminPanel = ({ onClose }) => {
   const updateUser = async (userId, updates) => {
     try {
       console.log('Updating user:', userId, 'with data:', updates);
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(`https://api.beratkaragol.xyz/api/admin/users/${userId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
