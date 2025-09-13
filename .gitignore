@@ -172,3 +172,4 @@ ecosystem.config.js
 test-results/
 playwright-report/
 playwright/.cache/ 
+.vercel

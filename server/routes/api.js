@@ -17,7 +17,8 @@ router.get('/rooms', (req, res) => {
     userCount: room.users.size,
     isActive: room.isActive,
     mode: room.mode,
-    createdAt: room.createdAt
+    createdAt: room.createdAt,
+    musicState: room.musicState
   }));
   res.json(roomList);
 });
@@ -38,6 +39,31 @@ router.post('/rooms', (req, res) => {
     id: room.id,
     name: room.name,
     createdBy: room.createdBy
+  });
+});
+
+// Get specific room details including music state
+router.get('/rooms/:id', (req, res) => {
+  const { rooms } = req.app.locals;
+  const room = rooms.get(req.params.id);
+  
+  if (!room) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+  
+  res.json({
+    id: room.id,
+    name: room.name,
+    userCount: room.users.size,
+    isActive: room.isActive,
+    mode: room.mode,
+    createdAt: room.createdAt,
+    musicState: room.musicState,
+    users: Array.from(room.users.values()).map(user => ({
+      id: user.id,
+      name: user.name,
+      isActive: user.isActive
+    }))
   });
 });
 

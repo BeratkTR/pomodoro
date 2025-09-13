@@ -158,16 +158,26 @@ function initializeSocketHandlers(io, rooms, users) {
       );
       
       // Add user to our tracking
-      users.set(socket.id, {
+      const userData = {
         ...persistentUser.getUserData(),
         roomId: roomId
-      });
+      };
+      users.set(socket.id, userData);
+      console.log(`✅ Added user to tracking: ${socket.id} -> ${userData.name} in room ${roomId}`);
 
       // Add user to room
       const addResult = room.addUser(persistentUser);
       if (!addResult.success) {
         socket.emit('error', { message: addResult.message });
         return;
+      }
+
+      // Update room info for authenticated users
+      persistentUser.updateRoomInfo(roomId, room.name);
+      
+      // Save to persistence if user is authenticated
+      if (persistentUser.isAuthenticated) {
+        triggerPersistenceSave(rooms, userStore, 1000); // Save after 1 second
       }
 
       // Join socket room
@@ -214,6 +224,14 @@ function initializeSocketHandlers(io, rooms, users) {
           const userInstance = room.getUser(user.id);
           if (userInstance) {
             userInstance.lastActivity = Date.now();
+            // Clear room info for authenticated users when explicitly leaving
+            userInstance.clearRoomInfo();
+            
+            // Save to persistence if user is authenticated
+            if (userInstance.isAuthenticated) {
+              triggerPersistenceSave(rooms, userStore, 1000); // Save after 1 second
+            }
+            
             // Keep user data in persistent store when leaving room
             userStore.setUserOffline(user.id);
           }
@@ -252,16 +270,25 @@ function initializeSocketHandlers(io, rooms, users) {
       }
     });
 
-    // Handle individual timer control ----------------------------------------------
+    // Handle synchronized timer control ----------------------------------------------
     socket.on('start_timer', () => {
       const user = users.get(socket.id);
-      if (!user) return;
+      if (!user) {
+        console.log('start_timer: User not found');
+        return;
+      }
 
       const room = rooms.get(user.roomId);
-      if (!room) return;
+      if (!room) {
+        console.log('start_timer: Room not found');
+        return;
+      }
 
       const userInstance = room.getUser(user.id);
-      if (!userInstance) return;
+      if (!userInstance) {
+        console.log('start_timer: User instance not found in room');
+        return;
+      }
 
       // Only allow timer operations for online users
       if (userInstance.status !== 'online') {
@@ -269,21 +296,34 @@ function initializeSocketHandlers(io, rooms, users) {
         return;
       }
 
-      userInstance.startTimer(io, user.roomId);
+      console.log(`Starting individual timer for ${userInstance.name}`);
+      userInstance.startTimer(io, room.id);
+      
+      // Check for timer synchronization after starting
+      room.handleTimerStart(userInstance);
       
       // Immediate persistence save for timer state changes
-      triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
+      triggerPersistenceSave(rooms, userStore, 1000);
     });
 
     socket.on('pause_timer', () => {
       const user = users.get(socket.id);
-      if (!user) return;
+      if (!user) {
+        console.log('pause_timer: User not found');
+        return;
+      }
 
       const room = rooms.get(user.roomId);
-      if (!room) return;
+      if (!room) {
+        console.log('pause_timer: Room not found');
+        return;
+      }
 
       const userInstance = room.getUser(user.id);
-      if (!userInstance) return;
+      if (!userInstance) {
+        console.log('pause_timer: User instance not found in room');
+        return;
+      }
 
       // Only allow timer operations for online users
       if (userInstance.status !== 'online') {
@@ -291,10 +331,14 @@ function initializeSocketHandlers(io, rooms, users) {
         return;
       }
 
-      userInstance.pauseTimer(io, user.roomId);
+      console.log(`Pausing individual timer for ${userInstance.name}`);
+      userInstance.pauseTimer(io, room.id);
+      
+      // Check for timer desynchronization after pausing
+      room.handleTimerStop(userInstance);
       
       // Immediate persistence save for timer state changes
-      triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
+      triggerPersistenceSave(rooms, userStore, 1000);
     });
 
     socket.on('reset_timer', () => {
@@ -313,7 +357,11 @@ function initializeSocketHandlers(io, rooms, users) {
         return;
       }
 
-      userInstance.resetTimer(io, user.roomId);
+      console.log(`Resetting individual timer for ${userInstance.name}`);
+      userInstance.resetTimer(io, room.id);
+      
+      // Check for timer desynchronization after resetting (since reset pauses)
+      room.handleTimerStop(userInstance);
       
       // Immediate persistence save for timer state changes
       triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
@@ -335,7 +383,15 @@ function initializeSocketHandlers(io, rooms, users) {
         return;
       }
 
-      userInstance.changeMode(data.mode, io, user.roomId);
+      console.log(`Changing individual timer mode for ${userInstance.name} to ${data.mode}`);
+      userInstance.changeMode(data.mode, io, room.id);
+      
+      // Check for synchronization after mode change (in case timer restarted)
+      if (userInstance.timerState.isActive) {
+        room.handleTimerStart(userInstance);
+      } else {
+        room.handleTimerStop(userInstance);
+      }
       
       // Immediate persistence save for timer state changes
       triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
@@ -357,7 +413,13 @@ function initializeSocketHandlers(io, rooms, users) {
         return;
       }
 
-      userInstance.skipToBreak(io, user.roomId);
+      console.log(`Skipping to break for ${userInstance.name}`);
+      userInstance.skipToBreak(io, room.id);
+      
+      // Check for synchronization after skip (timer continues in new mode)
+      if (userInstance.timerState.isActive) {
+        room.handleTimerStart(userInstance);
+      }
       
       // Immediate persistence save for timer state changes
       triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
@@ -379,7 +441,13 @@ function initializeSocketHandlers(io, rooms, users) {
         return;
       }
 
-      userInstance.skipToFocus(io, user.roomId);
+      console.log(`Skipping to pomodoro for ${userInstance.name}`);
+      userInstance.skipToFocus(io, room.id);
+      
+      // Check for synchronization after skip (timer continues in new mode)  
+      if (userInstance.timerState.isActive) {
+        room.handleTimerStart(userInstance);
+      }
       
       // Immediate persistence save for timer state changes
       triggerPersistenceSave(rooms, userStore, 1000); // 1 second delay for timer changes
@@ -425,7 +493,14 @@ function initializeSocketHandlers(io, rooms, users) {
       const userInstance = room.getUser(user.id);
       if (!userInstance) return;
 
-      userInstance.updateSettings(newSettings, io, user.roomId);
+      // Only allow settings update for online users
+      if (userInstance.status !== 'online') {
+        console.log(`Blocked settings update for offline user ${userInstance.name}`);
+        return;
+      }
+
+      console.log(`Updating individual timer settings for ${userInstance.name}:`, newSettings);
+      userInstance.updateSettings(newSettings, io, room.id);
       
       // Trigger persistence save for settings changes
       triggerPersistenceSave(rooms, userStore);
@@ -752,6 +827,47 @@ function initializeSocketHandlers(io, rooms, users) {
       }
       
       console.log(`User disconnected: ${socket.id}`);
+    });
+
+    // Music control handlers
+    socket.on('music_control', (data) => {
+      const user = users.get(socket.id);
+      if (!user) {
+        console.log('music_control: User not found');
+        return;
+      }
+
+      const room = rooms.get(user.roomId);
+      if (!room) {
+        console.log('music_control: Room not found');
+        return;
+      }
+
+      console.log(`🎵 Music control from ${user.name}:`, data);
+      
+      // Handle the music control action
+      room.handleMusicControl(data.action, user.id, data);
+      
+      // Immediate persistence save for music state changes
+      triggerPersistenceSave(rooms, userStore, 1000);
+    });
+
+    // Request current music state when joining room
+    socket.on('get_music_state', () => {
+      const user = users.get(socket.id);
+      if (!user) {
+        console.log('get_music_state: User not found');
+        return;
+      }
+
+      const room = rooms.get(user.roomId);
+      if (!room) {
+        console.log('get_music_state: Room not found');
+        return;
+      }
+
+      // Send current music state to the requesting user
+      socket.emit('room_music_update', room.getMusicState());
     });
   });
 }

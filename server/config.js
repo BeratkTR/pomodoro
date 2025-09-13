@@ -2,6 +2,8 @@ module.exports = {
   port: process.env.PORT || 5001,
   cors: {
     origin: [
+      "http://localhost:5173",
+      "http://localhost:5001",
       "http://18.159.206.201:5173",
       "http://18.159.206.201:5001",
     ],
@@ -22,6 +24,7 @@ module.exports = {
   },
   corsOptions: {
     origin: [
+      'http://localhost:5173',
       'http://18.159.206.201:5173',
     ],
     methods: ['GET', 'POST'],

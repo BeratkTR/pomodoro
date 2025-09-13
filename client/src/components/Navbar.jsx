@@ -2,6 +2,8 @@ import React, { useState} from 'react';
 import SettingsModal from './SettingsModal';
 import PersonalStatsModal from './PersonalStatsModal';
 import AdminPanel from './AdminPanel';
+import UserDropdown from './UserDropdown';
+import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = ({ setPomodoroSettings, userName, currentSettings, onLeaveRoom, onUpdateUserName, currentUser }) => {
   const [showSettings, setShowSettings] = useState(false);
@@ -38,20 +40,12 @@ const Navbar = ({ setPomodoroSettings, userName, currentSettings, onLeaveRoom, o
           )}
 
           {userName && (
-            <div 
-              className="name-tag clickable" 
-              onClick={() => setShowPersonalStats(true)}
-              title="View your statistics"
-            >
-              <span className="name-icon">👤</span>
-              <span className="name-text">{userName}</span>
-            </div>
+            <UserDropdown 
+              userName={userName}
+              currentUser={currentUser}
+              onShowPersonalStats={() => setShowPersonalStats(true)}
+            />
           )}
-          
-          {/* <button className="nav-btn signin-btn">
-            <span className="btn-icon">👤</span>
-            Sign In
-          </button> */}
         </div>
       </nav>
 

@@ -17,16 +17,31 @@ export const setupSocketListeners = (
 ) => {
   // Room events
   socketService.on('room_joined', (data) => {
-    console.log('Joined room:', data)
+    console.log('🏠 ROOM JOINED SUCCESS:', data)
+    console.log('🎯 ROOM ID:', data.room.id)
+    console.log('👤 MY TIMER STATE ON JOIN:', data.currentUser.timerState)
+    
     setCurrentRoom(data.room)
     setRoomUsers(data.users)
-    setCurrentUser(prev => ({
-      ...prev,
-      ...data.currentUser
-    }))
+    
+    // Set current user data with individual timer state
+    setCurrentUser(prev => {
+      console.log('🔀 UPDATING CLIENT USER DATA:')
+      console.log('  OLD timer state:', prev.timerState)
+      console.log('  NEW timer state from server:', data.currentUser.timerState)
+      
+      return {
+        ...prev,
+        ...data.currentUser
+        // Keep individual timer state from server
+      }
+    })
+    
     setShowRoomModal(false)
     setIsReconnecting(false)
     if (isReconnectingRef) isReconnectingRef.current = false
+    
+    console.log('✅ ROOM JOIN COMPLETE - NOW LISTENING FOR INDIVIDUAL TIMER UPDATES')
   })
 
   socketService.on('user_joined', (data) => {
@@ -73,22 +88,28 @@ export const setupSocketListeners = (
     }
   })
 
-  // Individual user timer events
+  // Individual user timer events  
   socketService.on('user_timer_update', (data) => {
-    console.log('Timer update received:', data)
+    console.log('🔄 USER TIMER UPDATE:', data)
     const currentUser = getCurrentUser()
     
-    // Update the specific user's timer state
     if (data.userId === currentUser.id) {
       // This is current user's timer update
-      console.log('Updating current user timer state')
+      const timeDisplay = `${Math.floor(data.timerState.timeLeft / 60)}:${(data.timerState.timeLeft % 60).toString().padStart(2, '0')}`;
+      console.log(`⏱️ My Timer: ${timeDisplay} - Active: ${data.timerState.isActive}`)
+      
+      // Check if this is a sync event (timer jumped significantly)
+      if (currentUser.timerState && Math.abs(currentUser.timerState.timeLeft - data.timerState.timeLeft) > 2) {
+        console.log(`🎯 TIMER SYNCHRONIZED! Jumped from ${Math.floor(currentUser.timerState.timeLeft / 60)}:${(currentUser.timerState.timeLeft % 60).toString().padStart(2, '0')} to ${timeDisplay}`);
+      }
+      
       setCurrentUser(prev => ({
         ...prev,
         timerState: data.timerState
       }))
     } else {
       // This is partner's timer update
-      console.log('Updating partner timer state')
+      console.log(`👥 Partner Timer: ${Math.floor(data.timerState.timeLeft / 60)}:${(data.timerState.timeLeft % 60).toString().padStart(2, '0')} - Active: ${data.timerState.isActive}`)
       setRoomUsers(prev => prev.map(user => 
         user.id === data.userId 
           ? { ...user, timerState: data.timerState }
@@ -98,51 +119,54 @@ export const setupSocketListeners = (
   })
 
   socketService.on('user_timer_complete', (data) => {
-    console.log('Timer complete received:', data)
+    console.log('User timer complete received:', data)
     const currentUser = getCurrentUser()
     
-    // Update the specific user's timer state and completed sessions
     if (data.userId === currentUser.id) {
       // This is current user's timer completion
-      console.log('Current user timer completed')
-      setCurrentUser(prev => ({
-        ...prev,
-        timerState: data.timerState,
-        completedSessions: data.completedSessions,
-        sessionHistory: data.sessionHistory,
-        totalWorkTime: data.totalWorkTime,
-        totalBreakTime: data.totalBreakTime
-      }))
+      console.log('🎉 My timer completed!')
+      console.log('📊 Timer completion data:', data)
+      console.log('⏱️ New timer state:', data.timerState)
+      console.log('📈 User data:', data.userData)
       
-      // Play timer end sound only if timer completed naturally (not skipped)
-      if (!data.wasSkipped) {
-        soundService.playTimerEndSound()
-      }
+      setCurrentUser(prev => {
+        const newUserState = {
+          ...prev,
+          timerState: data.timerState,
+          completedSessions: data.userData?.completedSessions || prev.completedSessions,
+          totalWorkTime: data.userData?.totalWorkTime || prev.totalWorkTime,
+          totalBreakTime: data.userData?.totalBreakTime || prev.totalBreakTime,
+          sessionHistory: data.userData?.sessionHistory || prev.sessionHistory
+        };
+        
+        console.log('🔄 Updated user state:', newUserState)
+        return newUserState;
+      })
       
-      // Note: permission modal check hidden for now
-      // if (checkPermissionModal) {
-      //   checkPermissionModal()
-      // }
+      // Play timer end sound for current user
+      soundService.playTimerEndSound()
       
-      // Show notification
+      // Show notification for current user
       if (Notification.permission === 'granted') {
-        new Notification(`${data.timerState.mode === 'pomodoro' ? 'Work' : 'Break'} time!`, {
-          body: `Time for a ${data.timerState.mode === 'pomodoro' ? 'focus session' : 'break'}`,
+        const completedMode = data.completedMode === 'pomodoro' ? 'Work' : 'Break'
+        const nextMode = data.timerState.mode === 'pomodoro' ? 'work session' : 'break'
+        new Notification(`${completedMode} session completed!`, {
+          body: `Time for a ${nextMode}`,
           icon: '/favicon.ico'
         })
       }
     } else {
       // This is partner's timer completion
-      console.log('Partner timer completed')
+      console.log('👥 Partner timer completed!')
       setRoomUsers(prev => prev.map(user => 
         user.id === data.userId 
           ? { 
               ...user, 
               timerState: data.timerState,
-              completedSessions: data.completedSessions,
-              sessionHistory: data.sessionHistory,
-              totalWorkTime: data.totalWorkTime,
-              totalBreakTime: data.totalBreakTime
+              completedSessions: data.userData.completedSessions || user.completedSessions,
+              totalWorkTime: data.userData.totalWorkTime || user.totalWorkTime,
+              totalBreakTime: data.userData.totalBreakTime || user.totalBreakTime,
+              sessionHistory: data.userData.sessionHistory || user.sessionHistory
             }
           : user
       ))
@@ -151,12 +175,12 @@ export const setupSocketListeners = (
 
   // Individual user settings events
   socketService.on('user_settings_updated', (data) => {
-    console.log('Settings update received:', data)
+    console.log('User settings update received:', data)
     const currentUser = getCurrentUser()
     
     if (data.userId === currentUser.id) {
       // This is current user's settings update
-      console.log('Updating current user settings')
+      console.log('⚙️ My settings updated:', data.settings)
       setCurrentUser(prev => ({
         ...prev,
         settings: data.settings,
@@ -164,14 +188,10 @@ export const setupSocketListeners = (
       }))
     } else {
       // This is partner's settings update
-      console.log('Updating partner settings')
+      console.log('👥 Partner settings updated')
       setRoomUsers(prev => prev.map(user => 
         user.id === data.userId 
-          ? { 
-              ...user, 
-              settings: data.settings,
-              timerState: data.timerState
-            }
+          ? { ...user, settings: data.settings, timerState: data.timerState }
           : user
       ))
     }
@@ -307,6 +327,7 @@ export const cleanupSocketListeners = () => {
   socketService.off('user_timer_update')
   socketService.off('user_timer_complete')
   socketService.off('user_settings_updated')
+  socketService.off('user_name_updated')
   socketService.off('user_updated')
   socketService.off('chat_message')
   socketService.off('chat_history')

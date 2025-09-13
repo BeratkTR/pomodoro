@@ -15,7 +15,7 @@ const AdminPanel = ({ onClose }) => {
     try {
       setLoading(true);
       console.log('Fetching admin data...');
-      const response = await fetch('/api/admin/data', {
+      const response = await fetch('https://api.beratkaragol.xyz/api/admin/data', {
         headers: {
           'X-Admin': 'true'
         }

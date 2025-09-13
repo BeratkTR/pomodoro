@@ -1,13 +1,20 @@
 const config = require('../config');
 
 class User {
-  constructor(id, name, socketId) {
+  constructor(id, name, socketId, email = null, passwordHash = null) {
     this.id = id;
     this.name = name;
+    this.email = email;
+    this.passwordHash = passwordHash;
     this.socketId = socketId;
     this.joinedAt = new Date();
     this.lastActivity = Date.now();
     this.status = 'online'; // 'online', 'offline'
+    this.isAuthenticated = !!email; // true if user has email/password
+    
+    // Room persistence for authenticated users
+    this.lastRoomId = null;
+    this.lastRoomName = null;
     
     // User's timezone (defaults to UTC, will be updated when client connects)
     this.timezone = 'UTC';
@@ -63,8 +70,8 @@ class User {
     this.timezone = timezone;
     console.log(`Updated timezone for ${this.name}: ${oldTimezone} -> ${timezone}`);
     
-    // Check if we need to reset with the new timezone
-    const wasReset = this.checkAndResetDaily();
+    // Check if we need to reset with the new timezone, but don't reset active timers
+    const wasReset = this.checkAndResetDaily(false);
     return wasReset;
   }
 
@@ -91,7 +98,7 @@ class User {
 
 
   // Check if it's a new day and reset daily stats if needed
-  checkAndResetDaily() {
+  checkAndResetDaily(resetTimer = true) {
     const currentDate = this.getCurrentDateString();
     
     if (this.lastResetDate !== currentDate) {
@@ -137,8 +144,8 @@ class User {
         console.log(`Saved data for ${this.lastResetDate}: ${this.totalWorkTime + additionalWorkTime}m work, ${this.totalBreakTime + additionalBreakTime}m break, ${this.completedSessions} sessions`);
       }
       
-      // Reset timer state when day changes
-      if (this.timerState) {
+      // Reset timer state when day changes (only if resetTimer is true)
+      if (resetTimer && this.timerState) {
         // Stop any active timer
         this.timerState.isActive = false;
         if (this.timerInterval) {
@@ -182,8 +189,8 @@ class User {
 
   // Get current day stats including any in-progress session
   getCurrentDayStats(includeCurrentSession = true) {
-    // First check if we need to reset for a new day
-    this.checkAndResetDaily();
+    // First check if we need to reset for a new day, but don't reset active timers
+    this.checkAndResetDaily(false);
     
     let currentSessionTime = 0;
     
@@ -227,9 +234,9 @@ class User {
     this.tasks = this.tasks.filter(task => task.id !== taskId);
   }
 
-  startTimer(io, roomId) {
-    // Check for daily reset before starting timer
-    const wasReset = this.checkAndResetDaily();
+  startTimer(io, roomId, skipRoomSync = false) {
+    // Check for daily reset before starting timer, but don't reset timer state
+    const wasReset = this.checkAndResetDaily(false); // Pass false to prevent timer reset
     if (wasReset) {
       // Broadcast the reset to update clients
       io.to(roomId).emit('user_updated', {
@@ -243,6 +250,14 @@ class User {
     }
 
     this.timerState.isActive = true;
+    console.log(`🚀 TIMER STARTED for ${this.name}: isActive = ${this.timerState.isActive} ${skipRoomSync ? '(no room sync)' : ''}`);
+    
+    // Immediately broadcast the start state
+    io.to(roomId).emit('user_timer_update', {
+      userId: this.id,
+      timerState: this.timerState
+    });
+    
     this.timerInterval = setInterval(() => {
       this.timerState.timeLeft--;
       
@@ -276,7 +291,10 @@ class User {
   handleTimerComplete(io, roomId) {
     this.pauseTimer(io, roomId);
     
-    if (this.timerState.mode === 'pomodoro') {
+    // Store what mode we were in before switching
+    const wasPomodoro = this.timerState.mode === 'pomodoro';
+    
+    if (wasPomodoro) {
       // Add completed pomodoro time
       console.log(`TIMER COMPLETE: ${this.name} - Adding ${this.settings.pomodoro}m to totalWorkTime (was ${this.totalWorkTime})`);
       this.totalWorkTime += this.settings.pomodoro;
@@ -321,10 +339,13 @@ class User {
     io.to(roomId).emit('user_timer_complete', {
       userId: this.id,
       timerState: this.timerState,
-      completedSessions: this.completedSessions,
-      sessionHistory: this.sessionHistory,
-      totalWorkTime: this.totalWorkTime,
-      totalBreakTime: this.totalBreakTime,
+      completedMode: wasPomodoro ? 'pomodoro' : 'break',
+      userData: {
+        completedSessions: this.completedSessions,
+        sessionHistory: this.sessionHistory,
+        totalWorkTime: this.totalWorkTime,
+        totalBreakTime: this.totalBreakTime
+      },
       wasSkipped: false // Natural completion, not skipped
     });
 
@@ -480,10 +501,13 @@ class User {
       io.to(roomId).emit('user_timer_complete', {
         userId: this.id,
         timerState: this.timerState,
-        completedSessions: this.completedSessions,
-        sessionHistory: this.sessionHistory,
-        totalWorkTime: this.totalWorkTime,
-        totalBreakTime: this.totalBreakTime,
+        completedMode: 'pomodoro', // Was in pomodoro mode, skipping to break
+        userData: {
+          completedSessions: this.completedSessions,
+          sessionHistory: this.sessionHistory,
+          totalWorkTime: this.totalWorkTime,
+          totalBreakTime: this.totalBreakTime
+        },
         wasSkipped: true // Manual skip, not natural completion
       });
     }
@@ -545,10 +569,13 @@ class User {
       io.to(roomId).emit('user_timer_complete', {
         userId: this.id,
         timerState: this.timerState,
-        completedSessions: this.completedSessions,
-        sessionHistory: this.sessionHistory,
-        totalWorkTime: this.totalWorkTime,
-        totalBreakTime: this.totalBreakTime,
+        completedMode: 'break', // Was in break mode, skipping to focus
+        userData: {
+          completedSessions: this.completedSessions,
+          sessionHistory: this.sessionHistory,
+          totalWorkTime: this.totalWorkTime,
+          totalBreakTime: this.totalBreakTime
+        },
         wasSkipped: true // Manual skip, not natural completion
       });
     }
@@ -574,13 +601,34 @@ class User {
     });
   }
 
+  // Update room information for authenticated users
+  updateRoomInfo(roomId, roomName) {
+    if (this.isAuthenticated) {
+      this.lastRoomId = roomId;
+      this.lastRoomName = roomName;
+      console.log(`Updated room info for authenticated user ${this.name}: ${roomName} (${roomId})`);
+    }
+  }
+
+  // Clear room information
+  clearRoomInfo() {
+    if (this.isAuthenticated) {
+      this.lastRoomId = null;
+      this.lastRoomName = null;
+      console.log(`Cleared room info for authenticated user ${this.name}`);
+    }
+  }
+
   getUserData() {
-    // Check for daily reset before returning data
-    this.checkAndResetDaily();
+    // Check for daily reset before returning data, but don't reset active timers
+    this.checkAndResetDaily(false);
     
     const data = {
       id: this.id,
       name: this.name,
+      email: this.email,
+      passwordHash: this.passwordHash,
+      isAuthenticated: this.isAuthenticated,
       status: this.status,
       timerState: this.timerState,
       settings: this.settings,
@@ -594,7 +642,12 @@ class User {
       lastActivity: this.lastActivity,
       // Include daily tracking data
       lastResetDate: this.lastResetDate,
-      dailyHistory: this.dailyHistory
+      dailyHistory: this.dailyHistory,
+      // Include room info for authenticated users
+      lastRoomId: this.lastRoomId,
+      lastRoomName: this.lastRoomName,
+      // Include timezone
+      timezone: this.timezone
     };
     console.log(`getUserData for ${this.name}: totalWorkTime=${this.totalWorkTime}, totalBreakTime=${this.totalBreakTime}`);
     return data;

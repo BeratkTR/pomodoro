@@ -22,7 +22,7 @@ class UserStore {
       
       for (const [userId, userData] of Object.entries(usersData)) {
         // Create user instance without socket connection (offline)
-        const user = new User(userData.id, userData.name, null);
+        const user = new User(userData.id, userData.name, null, userData.email, userData.passwordHash);
         
         // Restore all user data
         this.restoreUserData(user, userData);
@@ -64,6 +64,16 @@ class UserStore {
     } catch (error) {
       console.error('Error saving users to persistence:', error);
     }
+  }
+
+  // Find user by email
+  findUserByEmail(email) {
+    for (const user of this.persistentUsers.values()) {
+      if (user.email === email) {
+        return user;
+      }
+    }
+    return null;
   }
 
   // Get or create a persistent user
@@ -132,6 +142,33 @@ class UserStore {
       user.timezone = userData.timezone;
     }
     
+    // Restore authentication information
+    if (userData.email !== undefined) {
+      user.email = userData.email;
+    }
+    
+    if (userData.passwordHash !== undefined) {
+      user.passwordHash = userData.passwordHash;
+    }
+    
+    if (userData.isAuthenticated !== undefined) {
+      user.isAuthenticated = userData.isAuthenticated;
+    }
+    
+    // Ensure isAuthenticated is correctly set based on email presence
+    if (user.email && user.passwordHash) {
+      user.isAuthenticated = true;
+    }
+    
+    // Restore room persistence information
+    if (userData.lastRoomId !== undefined) {
+      user.lastRoomId = userData.lastRoomId;
+    }
+    
+    if (userData.lastRoomName !== undefined) {
+      user.lastRoomName = userData.lastRoomName;
+    }
+    
     // Restore lastActivity if available
     if (userData.lastActivity !== undefined) {
       user.lastActivity = userData.lastActivity;
@@ -155,8 +192,8 @@ class UserStore {
       }
     }
     
-    // After restoring, check if we need to reset for a new day
-    const wasReset = user.checkAndResetDaily();
+    // After restoring, check if we need to reset for a new day, but don't reset active timers
+    const wasReset = user.checkAndResetDaily(false);
     if (wasReset) {
       console.log(`Daily reset occurred during restoration for ${user.name}`);
     }
@@ -180,14 +217,9 @@ class UserStore {
       user.status = 'offline';
       user.lastActivity = Date.now(); // Update last activity time when going offline
       user.socketId = null;
-      // Pause timer if active
-      if (user.timerState.isActive) {
-        user.timerState.isActive = false;
-        if (user.timerInterval) {
-          clearInterval(user.timerInterval);
-          user.timerInterval = null;
-        }
-      }
+      // DON'T pause timer on disconnect - let it keep running
+      // Timer will be handled by the room system and persistence
+      console.log(`User ${user.name} went offline, but keeping timer state intact`);
     }
   }
 

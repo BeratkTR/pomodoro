@@ -32,7 +32,12 @@ class PersistenceManager {
           maxUsers: room.maxUsers,
           chatHistory: room.chatHistory || [],
           // Save user IDs that belong to this room
-          userIds: Array.from(room.users.keys())
+          userIds: Array.from(room.users.keys()),
+          // Save shared timer state and settings
+          sharedTimerState: room.sharedTimerState,
+          timerSettings: room.timerSettings,
+          // Save music state
+          musicState: room.musicState
         };
       }
       
@@ -66,31 +71,12 @@ class PersistenceManager {
       const usersData = {};
       
       for (const [userId, user] of userStore.persistentUsers.entries()) {
-        usersData[userId] = {
-          id: user.id,
-          name: user.name,
-          joinedAt: user.joinedAt,
-          lastActivity: user.lastActivity,
-          status: user.status,
-          timezone: user.timezone, // Save user's timezone
-          timerState: {
-            timeLeft: user.timerState.timeLeft, // Save exact time remaining
-            mode: user.timerState.mode,
-            isActive: false, // Always save as inactive to prevent ghost timers
-            currentSession: user.timerState.currentSession,
-            // Save timestamp to calculate elapsed time if needed
-            lastSaveTime: Date.now()
-          },
-          settings: user.settings,
-          tasks: user.tasks,
-          completedSessions: user.completedSessions,
-          currentSessionProgress: user.currentSessionProgress,
-          sessionHistory: user.sessionHistory,
-          totalWorkTime: user.totalWorkTime,
-          totalBreakTime: user.totalBreakTime,
-          lastResetDate: user.lastResetDate,
-          dailyHistory: user.dailyHistory
-        };
+        // Use the user's getUserData method to ensure all fields are included
+        const userData = user.getUserData();
+        // Keep the actual timer state - don't override isActive
+        userData.timerState.lastSaveTime = Date.now();
+        
+        usersData[userId] = userData;
       }
       
       await fs.writeFile(this.usersFile, JSON.stringify(usersData, null, 2));
@@ -127,22 +113,34 @@ class PersistenceManager {
     console.log(`Auto-save enabled: saving data every ${intervalMs/1000} seconds`);
   }
 
-  // Enhanced auto-save for active timer states
+  // Enhanced auto-save for active timer states (both user and room timers)
   setupTimerStateSave(rooms, userStore, intervalMs = 10000) { // Save every 10 seconds
     setInterval(async () => {
-      // Only save if there are active timers
+      // Only save if there are active timers (user or room)
       let hasActiveTimers = false;
       
-      for (const [userId, user] of userStore.persistentUsers) {
-        if (user.timerState && user.timerState.isActive) {
+      // Check for active room timers
+      for (const [roomId, room] of rooms) {
+        if (room.sharedTimerState && room.sharedTimerState.isActive) {
           hasActiveTimers = true;
           break;
+        }
+      }
+      
+      // Check for active user timers (legacy support)
+      if (!hasActiveTimers) {
+        for (const [userId, user] of userStore.persistentUsers) {
+          if (user.timerState && user.timerState.isActive) {
+            hasActiveTimers = true;
+            break;
+          }
         }
       }
       
       if (hasActiveTimers) {
         try {
           await this.saveUsers(userStore);
+          await this.saveRooms(rooms);
           console.log('Saved timer states for active sessions');
         } catch (error) {
           console.error('Error saving timer states:', error);

@@ -11,6 +11,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:5001',
+        // target: 'https://api.beratkaragol.xyz/api',
         changeOrigin: true,
         secure: false
       }

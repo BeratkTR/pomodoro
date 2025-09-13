@@ -26,6 +26,29 @@ class RoomManager {
         room.maxUsers = roomData.maxUsers || 2;
         room.chatHistory = roomData.chatHistory || [];
         
+        // Restore shared timer state and settings
+        if (roomData.sharedTimerState) {
+          room.sharedTimerState = { ...roomData.sharedTimerState };
+          console.log(`Restored shared timer state for room ${room.name}:`, room.sharedTimerState);
+          
+          // If the timer was active when server shut down, restart it
+          if (room.sharedTimerState.isActive) {
+            console.log(`⚠️  Timer was active for room ${room.name}, restarting...`);
+            room.startTimer();
+          }
+        }
+        
+        if (roomData.timerSettings) {
+          room.timerSettings = { ...roomData.timerSettings };
+          console.log(`Restored timer settings for room ${room.name}:`, room.timerSettings);
+        }
+        
+        // Restore music state
+        if (roomData.musicState) {
+          room.musicState = { ...roomData.musicState };
+          console.log(`Restored music state for room ${room.name}:`, room.musicState);
+        }
+        
         // Restore users to the room if they exist in userStore
         if (roomData.userIds && Array.isArray(roomData.userIds)) {
           for (const userId of roomData.userIds) {

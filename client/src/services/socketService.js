@@ -7,36 +7,50 @@ class SocketService {
     this.listeners = new Map();
   }
 
-  connect(serverUrl = 'http://localhost:5001') {
+  connect(serverUrl = 'https://api.beratkaragol.xyz') {
+    console.log('🔌 socketService.connect() called with URL:', serverUrl);
+    
     if (this.socket && this.isConnected) {
+      console.log('✅ Already connected, returning resolved promise');
       return Promise.resolve();
     }
 
     return new Promise((resolve, reject) => {
+      console.log('📡 Creating new socket connection...');
+      
       this.socket = io(serverUrl, {
         transports: ['websocket', 'polling'],
         timeout: 20000,
       });
 
       this.socket.on('connect', () => {
-        console.log('Connected to server');
+        console.log('✅ SOCKET CONNECTED! Resolving promise...');
         this.isConnected = true;
         resolve();
       });
 
       this.socket.on('disconnect', () => {
-        console.log('Disconnected from server');
+        console.log('❌ Socket disconnected');
         this.isConnected = false;
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('Connection error:', error);
+        console.error('🚨 Socket connection error:', error);
         this.isConnected = false;
         reject(error);
       });
 
       // Set up event listeners
+      console.log('🔧 Setting up socket event listeners...');
       this.setupEventListeners();
+      
+      // Timeout fallback
+      setTimeout(() => {
+        if (!this.isConnected) {
+          console.error('⏰ Connection timeout after 10 seconds');
+          reject(new Error('Connection timeout'));
+        }
+      }, 10000);
     });
   }
 
@@ -49,8 +63,24 @@ class SocketService {
   }
 
   setupEventListeners() {
+    // Clear specific listeners to avoid removing connection listeners
+    if (this.socket) {
+      console.log('🧹 Clearing existing room/timer event listeners...');
+      // Don't remove 'connect', 'disconnect', 'connect_error' listeners
+      const eventsToKeep = ['connect', 'disconnect', 'connect_error'];
+      const allEvents = ['room_joined', 'user_joined', 'user_disconnected', 'user_reconnected', 'user_left', 
+                        'user_timer_update', 'user_timer_complete', 'user_settings_updated',
+                        'user_name_updated', 'user_updated', 'chat_message', 'chat_history', 
+                        'message_status_update', 'user_typing_start', 'user_typing_stop', 'error'];
+      
+      allEvents.forEach(event => {
+        this.socket.removeAllListeners(event);
+      });
+    }
+    
     // Room events
     this.socket.on('room_joined', (data) => {
+      console.log('🔌 SOCKET: room_joined event received', data);
       this.emit('room_joined', data);
     });
 
@@ -72,6 +102,7 @@ class SocketService {
 
     // Individual user timer events
     this.socket.on('user_timer_update', (data) => {
+      console.log('🔌 SOCKET: user_timer_update event received', data);
       this.emit('user_timer_update', data);
     });
 
@@ -79,7 +110,6 @@ class SocketService {
       this.emit('user_timer_complete', data);
     });
 
-    // Individual user settings events
     this.socket.on('user_settings_updated', (data) => {
       this.emit('user_settings_updated', data);
     });
@@ -265,6 +295,17 @@ class SocketService {
   }
 
   // Utility methods
+  isConnected() {
+    const connected = this.socket && this.socket.connected && this.isConnected;
+    console.log('🔍 socketService.isConnected() check:', {
+      hasSocket: !!this.socket,
+      socketConnected: this.socket ? this.socket.connected : false,
+      isConnectedFlag: this.isConnected,
+      result: connected
+    });
+    return connected;
+  }
+
   isSocketConnected() {
     return this.socket && this.isConnected;
   }

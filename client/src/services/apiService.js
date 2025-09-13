@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5001/api';
+const API_BASE_URL = 'https://api.beratkaragol.xyz/api/';
 
 class ApiService {
   async request(endpoint, options = {}) {
@@ -20,7 +20,7 @@ class ApiService {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(errorData.message || `HTTP error! status: <${response.status}`);
       }
 
       const contentType = response.headers.get('content-type');

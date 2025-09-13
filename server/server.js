@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+// const http = require('https');
 const socketIo = require('socket.io');
 const cors = require('cors');
 
@@ -7,6 +8,7 @@ const config = require('./config');
 const { Room } = require('./models');
 const routes = require('./routes');
 const adminRoutes = require('./routes/admin');
+const authRoutes = require('./routes/auth');
 const { initializeSocketHandlers } = require('./sockets/socketHandlers');
 const userStore = require('./services/UserStore');
 const PersistenceManager = require('./services/PersistenceManager');
@@ -47,13 +49,15 @@ async function initializeData() {
   console.log('Data initialization complete');
 }
 
-// Make rooms, users and io available to routes
+// Make rooms, users, userStore and io available to routes
 app.locals.rooms = rooms;
 app.locals.users = users;
+app.locals.userStore = userStore;
 app.locals.io = io;
 
 // Routes - Admin routes must be registered BEFORE the main routes
 // because main routes has a catch-all 404 handler
+app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/', routes);
 

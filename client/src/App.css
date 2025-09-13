@@ -66,6 +66,314 @@ body {
   align-items: center;
 }
 
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* User Dropdown Styles */
+.user-dropdown {
+  position: relative;
+}
+
+.dropdown-arrow {
+  margin-left: 8px;
+  font-size: 0.7rem;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.user-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  min-width: 220px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2),
+              0 0 0 1px rgba(255, 255, 255, 0.1);
+  padding: 8px 0;
+  z-index: 1000;
+  animation: dropdownSlide 0.2s ease-out;
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.user-status {
+  font-size: 0.8rem;
+  color: rgba(107, 255, 107, 0.8);
+  font-weight: 500;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 8px 12px;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 1);
+  transform: translateX(4px);
+}
+
+.dropdown-item.logout-item:hover {
+  background: rgba(229, 62, 62, 0.2);
+  color: rgba(255, 107, 107, 1);
+}
+
+.dropdown-icon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+/* Logout Modal Styles */
+.logout-modal.modal-content,
+.modal-content.logout-modal {
+  max-width: 420px !important;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4), 
+              0 0 0 1px rgba(255, 255, 255, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  position: relative;
+  overflow: hidden;
+  color: white !important;
+}
+
+.logout-modal.modal-content::before,
+.modal-content.logout-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.02) 50%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border-radius: 20px;
+  z-index: -1;
+}
+
+.logout-confirmation {
+  padding: 20px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.logout-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+}
+
+.logout-confirmation p {
+  margin: 8px 0;
+  color: rgba(255, 255, 255, 1);
+  line-height: 1.5;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  font-size: 1.1rem;
+}
+
+.logout-confirmation strong {
+  color: rgba(255, 255, 255, 1);
+  font-weight: 600;
+}
+
+.logout-warning {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 107, 107, 0.15);
+  backdrop-filter: blur(15px);
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  margin-top: 16px;
+}
+
+/* Logout modal header styles */
+.logout-modal.modal-content .modal-header,
+.modal-content.logout-modal .modal-header {
+  padding: 20px 30px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.logout-modal.modal-content .modal-header h3,
+.modal-content.logout-modal .modal-header h3 {
+  margin: 0;
+  color: rgba(255, 255, 255, 1) !important;
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+/* Logout modal body styles */
+.logout-modal.modal-content .modal-body,
+.modal-content.logout-modal .modal-body {
+  padding: 10px 30px;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Logout modal actions styles */
+.logout-modal.modal-content .modal-actions,
+.modal-content.logout-modal .modal-actions {
+  padding: 20px 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(10px) !important;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* Enhance button visibility in logout modal */
+.logout-modal.modal-content .btn.secondary,
+.modal-content.logout-modal .btn.secondary {
+  background: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(20px) !important;
+  color: rgba(255, 255, 255, 1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7) !important;
+  font-weight: 600 !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease !important;
+}
+
+.logout-modal.modal-content .btn.secondary:hover,
+.modal-content.logout-modal .btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(255, 255, 255, 0.15) !important;
+}
+
+.logout-modal.modal-content .btn.danger,
+.modal-content.logout-modal .btn.danger {
+  background: rgba(255, 107, 107, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 107, 107, 0.4) !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  font-weight: 600 !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease !important;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3) !important;
+}
+
+.logout-modal.modal-content .btn.danger:hover,
+.modal-content.logout-modal .btn.danger:hover {
+  background: rgba(255, 82, 82, 0.9) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4) !important;
+}
+
+.btn.danger {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn.danger:hover {
+  background: linear-gradient(135deg, #ff5252 0%, #e53e3e 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+.btn.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
 .name-tag {
   display: flex;
   align-items: center;
@@ -78,7 +386,7 @@ body {
   font-size: 14px;
   font-weight: 500;
   backdrop-filter: blur(10px);
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .name-tag.clickable {
@@ -110,7 +418,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   font-size: 14px;
   font-weight: 500;
   backdrop-filter: blur(10px);
@@ -208,7 +516,7 @@ body {
   padding: 6px 12px;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   backdrop-filter: blur(10px);
 }
 
@@ -270,7 +578,7 @@ body {
   border-radius: 6px;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .save-task-btn {
@@ -313,7 +621,7 @@ body {
   margin-bottom: 8px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -357,7 +665,7 @@ body {
   cursor: pointer;
   padding: 4px 6px;
   border-radius: 4px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .delete-task-btn:hover {
@@ -493,7 +801,7 @@ body {
   cursor: pointer;
   font-size: 15px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
   flex: 1;
@@ -556,12 +864,22 @@ body {
   font-weight: 600;
   border: none;
   border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
   min-width: 100px;
   outline: none;
+}
+
+/* Force cursor on all timer button states */
+.timer-btn,
+.timer-btn:hover,
+.timer-btn:focus,
+.timer-btn:active,
+.timer-btn:visited,
+.timer-btn:link {
+  cursor: pointer !important;
 }
 
 .timer-btn:focus {
@@ -579,11 +897,29 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   padding: 12px 60px;
   border: none;
+  cursor: pointer !important;
 }
 
 .start-btn:hover, .pause-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  cursor: pointer !important;
+}
+
+/* Force cursor on all start/pause button states */
+.start-btn,
+.start-btn:hover,
+.start-btn:focus,
+.start-btn:active,
+.start-btn:visited,
+.start-btn:link,
+.pause-btn,
+.pause-btn:hover,
+.pause-btn:focus,
+.pause-btn:active,
+.pause-btn:visited,
+.pause-btn:link {
+  cursor: pointer !important;
 }
 
 .reset-btn {
@@ -591,12 +927,24 @@ body {
   color: #6c757d;
   border: 2px solid white;
   padding: 12px 60px;
+  cursor: pointer !important;
 }
 
 .reset-btn:hover {
   background: #f8f9fa;
   border-color: #f8f9fa;
   transform: translateY(-2px);
+  cursor: pointer !important;
+}
+
+/* Force cursor on all reset button states */
+.reset-btn,
+.reset-btn:hover,
+.reset-btn:focus,
+.reset-btn:active,
+.reset-btn:visited,
+.reset-btn:link {
+  cursor: pointer !important;
 }
 
 .skip-btn {
@@ -614,6 +962,7 @@ body {
   border-color: rgba(59, 130, 246, 1);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+  cursor: pointer !important;
 }
 
 .skip-to-focus-btn {
@@ -631,6 +980,7 @@ body {
   border-color: rgba(16, 185, 129, 1);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+  cursor: pointer !important;
 }
 
 .skip-btn:disabled,
@@ -701,7 +1051,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
 }
 
 .partner-stats-section.offline {
@@ -734,7 +1084,7 @@ body {
 
 .partner-name-display.clickable {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .partner-name-display.clickable:hover {
@@ -829,7 +1179,7 @@ body {
   padding: 20px;
   margin-bottom: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
 }
 
 
@@ -856,7 +1206,7 @@ body {
   color: white;
   padding: 4px 8px;
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -983,7 +1333,7 @@ body {
   border-radius: 4px;
   overflow: hidden;
   position: relative;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   animation: slideIn 0.3s ease-out;
   cursor: pointer;
   min-width: 20px;
@@ -1447,11 +1797,12 @@ body {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
 }
 
 .modal-content {
@@ -1492,7 +1843,7 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .close-btn:hover {
@@ -1572,7 +1923,7 @@ body {
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .reset-btn:hover {
@@ -1594,7 +1945,7 @@ body {
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .cancel-btn:hover {
@@ -1611,7 +1962,7 @@ body {
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .save-btn:hover {
@@ -1630,7 +1981,7 @@ body {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   margin-bottom: 8px;
 }
 
@@ -1666,7 +2017,7 @@ body {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .error-screen button:hover {
@@ -1717,7 +2068,7 @@ body {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   color: #666;
   border-bottom: 3px solid transparent;
 }
@@ -1754,11 +2105,34 @@ body {
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.2s ease;
+  background-color: #2a2a2a;
+  color: #ffffff;
 }
 
 .form-group input:focus {
   outline: none;
   border-color: #d63a3a;
+}
+
+.form-group input::placeholder {
+  color: #aaaaaa;
+}
+
+/* More specific rule for room modal inputs to override auth styles */
+.room-modal .form-group input {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+  border: 2px solid #555 !important;
+}
+
+.room-modal .form-group input:focus {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border-color: #d63a3a !important;
+}
+
+.room-modal .form-group input::placeholder {
+  color: #aaaaaa !important;
 }
 
 .available-rooms {
@@ -1786,7 +2160,7 @@ body {
   padding: 12px 16px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .room-item:last-child {
@@ -1892,7 +2266,7 @@ body {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .join-btn:hover:not(:disabled) {
@@ -2084,7 +2458,7 @@ body {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -2178,7 +2552,7 @@ body {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .continue-btn:hover {
@@ -2194,7 +2568,7 @@ body {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .allow-sounds-btn:hover {
@@ -2231,7 +2605,7 @@ body {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   color: #666;
   border-bottom: 3px solid transparent;
 }
@@ -2307,7 +2681,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   margin-right: 8px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .edit-btn {
@@ -2505,7 +2879,7 @@ body {
   font-size: 14px;
   font-weight: 500;
   border-radius: 6px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2568,7 +2942,7 @@ body {
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .date-btn:hover:not(.active) {
