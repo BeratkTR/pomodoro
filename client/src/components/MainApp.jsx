@@ -7,6 +7,7 @@ import RoomJoinModal from './RoomJoinModal'
 import TaskList from './TaskList'
 import ChatWidget from './ChatWidget'
 import PersonalStatsModal from './PersonalStatsModal'
+import SessionNotesModal from './SessionNotesModal'
 import { useAuth } from '../contexts/AuthContext'
 import socketService from '../services/socketService'
 import apiService from '../services/apiService'
@@ -148,6 +149,12 @@ function MainApp() {
   // Partner stats modal state
   const [showPartnerStatsModal, setShowPartnerStatsModal] = useState(false)
   const [partnerForStats, setPartnerForStats] = useState(null)
+
+  // Session notes modal state
+  const [showSessionNotesModal, setShowSessionNotesModal] = useState(false)
+  const [selectedSession, setSelectedSession] = useState(null)
+  const [selectedSessionIndex, setSelectedSessionIndex] = useState(null)
+  const [isPartnerSession, setIsPartnerSession] = useState(false)
 
   // Sound permission state (hidden for now)
   // const [showSoundPermissionModal, setShowSoundPermissionModal] = useState(false)
@@ -476,6 +483,39 @@ function MainApp() {
     setPartnerForStats(null)
   }
 
+  // Session notes modal handlers
+  const handleSessionClick = (sessionIndex, sessionInfo, isCurrent = false, isPartner = false) => {
+    setSelectedSessionIndex(sessionIndex)
+    setIsPartnerSession(isPartner)
+    
+    if (isCurrent) {
+      setSelectedSession({
+        ...sessionInfo,
+        notes: isPartner 
+          ? (roomUsers.find(u => u.id !== currentUser.id)?.currentSessionNotes || '')
+          : (currentUser.currentSessionNotes || '')
+      })
+    } else {
+      setSelectedSession(sessionInfo)
+    }
+    setShowSessionNotesModal(true)
+  }
+
+  const handleCloseSessionNotes = () => {
+    setShowSessionNotesModal(false)
+    setSelectedSession(null)
+    setSelectedSessionIndex(null)
+    setIsPartnerSession(false)
+  }
+
+  const handleSaveSessionNotes = (sessionIndex, notes) => {
+    if (!isPartnerSession) {
+      // Only save if it's user's own session
+      socketService.updateSessionNotes(sessionIndex, notes)
+    }
+    handleCloseSessionNotes()
+  }
+
   // Debug function to clear localStorage (can be called from browser console)
   window.clearPomodoroStorage = () => {
     localStorage.removeItem('currentRoomId')
@@ -576,6 +616,7 @@ function MainApp() {
             onSkipToFocus={handleSkipToFocus}
             currentUser={currentUser}
             timerActionInProgress={timerActionInProgress}
+            onSessionClick={handleSessionClick}
           />
           
           <StudyPartners 
@@ -584,6 +625,7 @@ function MainApp() {
             currentUser={currentUser}
             currentRoom={currentRoom}
             onShowPartnerStats={handleShowPartnerStats}
+            onSessionClick={handleSessionClick}
           />
         </div>
         
@@ -646,6 +688,17 @@ function MainApp() {
         <PersonalStatsModal 
           onClose={handleClosePartnerStats} 
           currentUser={partnerForStats} 
+        />
+      )}
+
+      {/* Session Notes Modal */}
+      {showSessionNotesModal && selectedSession && (
+        <SessionNotesModal
+          session={selectedSession}
+          sessionIndex={selectedSessionIndex}
+          onClose={handleCloseSessionNotes}
+          onSave={handleSaveSessionNotes}
+          readOnly={isPartnerSession}
         />
       )}
 

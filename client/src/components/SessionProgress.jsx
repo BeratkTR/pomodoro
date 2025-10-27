@@ -10,7 +10,9 @@ const SessionBar = ({
   pomodoroLength, 
   breakLength, 
   currentSession, 
-  currentTimerState 
+  currentTimerState,
+  onSessionClick,
+  currentUser
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const formatBubbleDuration = (minutes) => {
@@ -104,6 +106,21 @@ const SessionBar = ({
     sessionClass = 'pending';
   }
 
+  // Check if this session has notes (for completed) or current session has notes
+  const hasNotes = (sessionInfo && sessionInfo.notes && sessionInfo.notes.trim().length > 0) ||
+                   (isCurrent && currentTimerState && currentUser?.currentSessionNotes && currentUser.currentSessionNotes.trim().length > 0);
+
+  const handleClick = () => {
+    // Allow clicking on both completed and current sessions
+    if ((isCompleted || isCurrent) && (sessionInfo || isCurrent)) {
+      onSessionClick(
+        historyIndex, 
+        sessionInfo || { type: sessionType, duration: duration, notes: '' },
+        isCurrent // Pass whether this is the current session
+      );
+    }
+  };
+
   return (
     <div 
       className="session-bar-container"
@@ -111,21 +128,26 @@ const SessionBar = ({
       onMouseLeave={() => setShowTooltip(false)}
     >
       <div 
-        className={`session-bar ${sessionClass}`}
+        className={`session-bar ${sessionClass} ${(isCompleted || isCurrent) ? 'clickable' : ''}`}
         style={{ width: `${barWidth}px` }}
+        onClick={handleClick}
       >
         <div className="bar-fill" style={{ width: `${progress * 100}%` }}></div>
+        {hasNotes && (
+          <div className="notes-indicator" title="Has notes">📝</div>
+        )}
       </div>
       {showTooltip && (
         <div className="session-tooltip">
           {tooltipContent}
+          {hasNotes && <div className="tooltip-notes-hint">Click to view notes</div>}
         </div>
       )}
     </div>
   );
 };
 
-const SessionProgress = ({ currentUser }) => {
+const SessionProgress = ({ currentUser, onSessionClick }) => {
   if (!currentUser) return null;
 
   // Helper to check if two dates are on the same calendar day
@@ -257,6 +279,10 @@ const SessionProgress = ({ currentUser }) => {
               breakLength={breakLength}
               currentSession={effectiveCurrentSession}
               currentTimerState={currentUser?.timerState}
+              onSessionClick={(sessionIndex, sessionInfo, isCurrent) => 
+                onSessionClick && onSessionClick(sessionIndex, sessionInfo, isCurrent, false)
+              }
+              currentUser={currentUser}
             />
           );
       

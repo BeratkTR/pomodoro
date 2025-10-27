@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import SessionProgress from './SessionProgress';
 
-const TimerSection = ({ timerState, settings, onStart, onPause, onReset, onModeChange, onSkipToBreak, onSkipToFocus, currentUser, timerActionInProgress }) => {
+const TimerSection = ({ timerState, settings, onStart, onPause, onReset, onModeChange, onSkipToBreak, onSkipToFocus, currentUser, timerActionInProgress, onSessionClick }) => {
   // Refs for timer buttons to fix cursor issue
   const startPauseBtnRef = useRef(null);
   const resetBtnRef = useRef(null);
@@ -232,7 +232,7 @@ const TimerSection = ({ timerState, settings, onStart, onPause, onReset, onModeC
       </div>
       
       {/* Session Progress Section */}
-      <SessionProgress currentUser={currentUser} />
+      <SessionProgress currentUser={currentUser} onSessionClick={onSessionClick} />
     </div>
   );
 };

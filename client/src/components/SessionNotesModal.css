@@ -1,0 +1,183 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  animation: fadeIn 0.2s ease-in-out;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.session-notes-modal {
+  background: linear-gradient(135deg, #F71A01 0%, #9c0a0a 100%);
+  border-radius: 20px;
+  width: 85%;
+  max-width: 600px;
+  padding: 25px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  position: relative;
+  z-index: 1000000;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.close-modal-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-weight: 300;
+  line-height: 1;
+  padding: 0;
+}
+
+.close-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: rotate(90deg);
+}
+
+.notes-textarea {
+  width: 100%;
+  padding: 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 200px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  line-height: 1.5;
+}
+
+.notes-textarea:focus {
+  outline: none;
+  background: white;
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.notes-textarea::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.notes-textarea.read-only {
+  background: rgba(255, 255, 255, 0.85);
+  cursor: default;
+  color: #374151;
+}
+
+.notes-textarea.read-only:focus {
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+.save-btn {
+  padding: 14px 32px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+  color: #f87171;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  align-self: center;
+  min-width: 160px;
+}
+
+.save-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  background: #ffffff;
+}
+
+.save-btn:active {
+  transform: translateY(-1px);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .session-notes-modal {
+    width: 90%;
+    max-width: 450px;
+    padding: 25px;
+  }
+
+  .notes-textarea {
+    font-size: 0.95rem;
+    padding: 16px;
+    min-height: 180px;
+  }
+  
+  .save-btn {
+    width: 100%;
+    font-size: 0.95rem;
+    padding: 12px 28px;
+  }
+  
+  .close-modal-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .session-notes-modal {
+    padding: 20px;
+  }
+  
+  .notes-textarea {
+    padding: 15px;
+    min-height: 150px;
+  }
+}
+

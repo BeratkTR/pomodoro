@@ -11,7 +11,10 @@ const SessionBar = React.memo(({
   pomodoroLength, 
   breakLength, 
   currentSession, 
-  currentTimerState 
+  currentTimerState,
+  onSessionClick,
+  partner,
+  isPartnerSession = false
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   
@@ -57,12 +60,19 @@ const SessionBar = React.memo(({
   let barClass = 'session-bar';
   let tooltipText = '';
   let barWidth = 30; // default width
+  let isCompleted = false;
+  let isCurrent = false;
+  let sessionInfo = null;
+  let hasNotes = false;
   
   if (historyIndex < sessionHistory.length) {
     const sessionType = sessionHistory[historyIndex].type;
     const sessionData = sessionHistory[historyIndex];
     const isPartial = sessionData.isPartial;
     barClass += ` completed ${sessionType}${isPartial ? ' partial' : ''}`;
+    isCompleted = true;
+    sessionInfo = sessionData;
+    hasNotes = sessionInfo.notes && sessionInfo.notes.trim().length > 0;
     
     // For completed sessions, use the actual duration that was completed
     // If duration is stored in session history, use that; otherwise fall back to current settings
@@ -74,14 +84,21 @@ const SessionBar = React.memo(({
   } else if (sessionNum === currentSession) {
     // Current session - show as yellow/pending with pulse
     barClass += ' current';
+    isCurrent = true;
+    
+    // Check if current session has notes
+    if (partner && partner.currentSessionNotes) {
+      hasNotes = partner.currentSessionNotes.trim().length > 0;
+    }
     
     // Calculate elapsed time for current session
+    let elapsedMinutes = 0;
     if (currentTimerState) {
       const totalTime = currentTimerState.mode === 'pomodoro' ? pomodoroLength * 60 : breakLength * 60;
       const elapsedSeconds = totalTime - currentTimerState.timeLeft;
       // Cap elapsed time to not exceed expected duration
       const cappedElapsedSeconds = Math.min(elapsedSeconds, totalTime);
-      const elapsedMinutes = Math.max(0, cappedElapsedSeconds / 60);
+      elapsedMinutes = Math.max(0, cappedElapsedSeconds / 60);
       
       tooltipText = `${formatBubbleDuration(elapsedMinutes)}`;
       barWidth = calculateBarWidth(elapsedMinutes);
@@ -91,6 +108,13 @@ const SessionBar = React.memo(({
       barWidth = calculateBarWidth(0.5); // Show very small bar for 0 time
       console.log(`⭕ Current session ${sessionNum}: not started, tier=${getTierDescription(0.5)}, width=${barWidth}px`);
     }
+    
+    // Create session info for current session
+    sessionInfo = {
+      type: currentTimerState?.mode || 'pomodoro',
+      duration: elapsedMinutes,
+      notes: partner?.currentSessionNotes || ''
+    };
   } else {
     // Future sessions - show as grey pending
     barClass += ' pending';
@@ -101,6 +125,13 @@ const SessionBar = React.memo(({
     console.log(`⏳ Pending session ${sessionNum}: expected=${pomodoroLength}min (30% = ${pendingDuration.toFixed(1)}min), tier=${getTierDescription(pendingDuration)}, width=${barWidth}px`);
   }
   
+  const handleClick = () => {
+    // Allow clicking on both completed and current sessions for partner
+    if (isPartnerSession && (isCompleted || isCurrent) && sessionInfo && onSessionClick) {
+      onSessionClick(historyIndex, sessionInfo, isCurrent);
+    }
+  };
+
   return (
     <div 
       className="session-bar-container"
@@ -108,25 +139,30 @@ const SessionBar = React.memo(({
       onMouseLeave={() => setShowTooltip(false)}
     >
       <div 
-        className={barClass}
+        className={`${barClass} ${(isPartnerSession && (isCompleted || isCurrent)) ? 'clickable' : ''}`}
         style={{ 
           width: `${barWidth}px`,
           minWidth: `${barWidth}px`,
           maxWidth: `${barWidth}px`
         }}
+        onClick={handleClick}
       >
         <div className="bar-fill"></div>
+        {hasNotes && (
+          <div className="notes-indicator" title="Has notes">📝</div>
+        )}
       </div>
       {showTooltip && (
         <div className="session-tooltip">
           {tooltipText}
+          {hasNotes && isPartnerSession && <div className="tooltip-notes-hint">Click to view notes</div>}
         </div>
       )}
     </div>
   );
 });
 
-const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, onShowPartnerStats }) => {
+const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, onShowPartnerStats, onSessionClick }) => {
   // State to force re-render for live updates
   const [, setUpdateTrigger] = useState(0);
   
@@ -314,6 +350,11 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
               breakLength={breakLength}
               currentSession={effectiveCurrentSession}
               currentTimerState={partner?.timerState}
+              onSessionClick={(sessionIndex, sessionInfo, isCurrent) => 
+                onSessionClick && onSessionClick(sessionIndex, sessionInfo, isCurrent, true)
+              }
+              partner={partner}
+              isPartnerSession={true}
             />
           );
       

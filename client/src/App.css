@@ -1331,19 +1331,52 @@ body {
   height: 8px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   animation: slideIn 0.3s ease-out;
-  cursor: pointer;
+  cursor: default;
   min-width: 20px;
   width: auto;
 }
 
-.session-bar:hover {
+.session-bar.clickable {
+  cursor: pointer;
+}
+
+.session-bar.clickable:hover {
   transform: translateY(-2px);
   height: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.session-bar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.notes-indicator {
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  font-size: 14px;
+  z-index: 10;
+  animation: bounceIn 0.5s ease-out;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .session-tooltip {
@@ -1361,6 +1394,13 @@ body {
   z-index: 1000;
   margin-bottom: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-notes-hint {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 3px;
+  font-style: italic;
   backdrop-filter: blur(10px);
   pointer-events: none;
 }

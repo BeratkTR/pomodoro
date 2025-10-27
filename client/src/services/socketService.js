@@ -70,7 +70,7 @@ class SocketService {
       const eventsToKeep = ['connect', 'disconnect', 'connect_error'];
       const allEvents = ['room_joined', 'user_joined', 'user_disconnected', 'user_reconnected', 'user_left', 
                         'user_timer_update', 'user_timer_complete', 'user_settings_updated',
-                        'user_name_updated', 'user_updated', 'chat_message', 'chat_history', 
+                        'user_name_updated', 'user_updated', 'session_notes_updated', 'chat_message', 'chat_history', 
                         'message_status_update', 'user_typing_start', 'user_typing_stop', 'error'];
       
       allEvents.forEach(event => {
@@ -122,6 +122,11 @@ class SocketService {
     // User data updates
     this.socket.on('user_updated', (data) => {
       this.emit('user_updated', data);
+    });
+
+    // Session notes events
+    this.socket.on('session_notes_updated', (data) => {
+      this.emit('session_notes_updated', data);
     });
 
     // Chat events
@@ -265,6 +270,13 @@ class SocketService {
   deleteTask(taskData) {
     if (this.socket && this.isConnected) {
       this.socket.emit('delete_task', taskData);
+    }
+  }
+
+  // Session notes methods
+  updateSessionNotes(sessionIndex, notes) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('update_session_notes', { sessionIndex, notes });
     }
   }
 

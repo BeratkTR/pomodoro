@@ -245,6 +245,61 @@ export const setupSocketListeners = (
     }
   })
 
+  // Session notes events
+  socketService.on('session_notes_updated', (data) => {
+    console.log('Session notes updated:', data)
+    const currentUser = getCurrentUser()
+    
+    if (data.userId === currentUser.id) {
+      // This is current user's session notes update
+      setCurrentUser(prev => {
+        // Check if this is for a completed session or current session
+        if (prev.sessionHistory && prev.sessionHistory[data.sessionIndex]) {
+          // Update completed session notes
+          const updatedSessionHistory = [...prev.sessionHistory]
+          updatedSessionHistory[data.sessionIndex] = {
+            ...updatedSessionHistory[data.sessionIndex],
+            notes: data.notes
+          }
+          return {
+            ...prev,
+            sessionHistory: updatedSessionHistory
+          }
+        } else {
+          // Update current session notes
+          return {
+            ...prev,
+            currentSessionNotes: data.notes
+          }
+        }
+      })
+    } else {
+      // This is partner's session notes update
+      setRoomUsers(prev => prev.map(user => {
+        if (user.id === data.userId) {
+          // Check if this is for a completed session or current session
+          if (user.sessionHistory && user.sessionHistory[data.sessionIndex]) {
+            const updatedSessionHistory = [...(user.sessionHistory || [])]
+            updatedSessionHistory[data.sessionIndex] = {
+              ...updatedSessionHistory[data.sessionIndex],
+              notes: data.notes
+            }
+            return {
+              ...user,
+              sessionHistory: updatedSessionHistory
+            }
+          } else {
+            return {
+              ...user,
+              currentSessionNotes: data.notes
+            }
+          }
+        }
+        return user
+      }))
+    }
+  })
+
   // Chat events
   socketService.on('chat_message', (data) => {
     console.log('Received chat message:', data)
