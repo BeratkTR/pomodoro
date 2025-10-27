@@ -44,7 +44,10 @@ class User {
     this.currentSessionProgress = 0;
     
     // Session history to track types of completed sessions
-    this.sessionHistory = []; // Array of {type: 'pomodoro'|'break', completedAt: timestamp}
+    this.sessionHistory = []; // Array of {type: 'pomodoro'|'break', completedAt: timestamp, notes: string}
+    
+    // Current session notes (for active session)
+    this.currentSessionNotes = '';
     
     // Accumulated time tracking (in minutes) - current day
     this.totalWorkTime = 0;
@@ -128,8 +131,12 @@ class User {
             duration: elapsedMinutes,
             completedAt: Date.now(),
             isPartial: true,
-            isEndOfDay: true // Mark as end-of-day partial session
+            isEndOfDay: true, // Mark as end-of-day partial session
+            notes: this.currentSessionNotes || ''
           });
+          
+          // Clear current session notes
+          this.currentSessionNotes = '';
         }
       }
       
@@ -300,12 +307,16 @@ class User {
       this.totalWorkTime += this.settings.pomodoro;
       console.log(`TIMER COMPLETE: ${this.name} - totalWorkTime is now ${this.totalWorkTime}m`);
       
-      // Add to session history
+      // Add to session history with current notes
       this.sessionHistory.push({
         type: 'pomodoro',
         completedAt: Date.now(),
-        duration: this.settings.pomodoro // Store the actual duration completed
+        duration: this.settings.pomodoro, // Store the actual duration completed
+        notes: this.currentSessionNotes || '' // Include current session notes
       });
+      
+      // Clear current session notes after moving to history
+      this.currentSessionNotes = '';
       
       // Update completed sessions (only count pomodoros for backward compatibility)
       this.completedSessions++;
@@ -321,12 +332,16 @@ class User {
       this.totalBreakTime += this.settings.break;
       console.log(`TIMER COMPLETE: ${this.name} - totalBreakTime is now ${this.totalBreakTime}m`);
       
-      // Add to session history
+      // Add to session history with current notes
       this.sessionHistory.push({
         type: 'break',
         completedAt: Date.now(),
-        duration: this.settings.break // Store the actual duration completed
+        duration: this.settings.break, // Store the actual duration completed
+        notes: this.currentSessionNotes || '' // Include current session notes
       });
+      
+      // Clear current session notes after moving to history
+      this.currentSessionNotes = '';
       
       // Break completed, switch to pomodoro
       this.timerState.mode = 'pomodoro';
@@ -468,10 +483,14 @@ class User {
         type: 'pomodoro',
         duration: elapsedMinutes, // Only the actual elapsed time, not the full pomodoro duration
         completedAt: new Date().toISOString(),
-        isPartial: true // Mark as partial session
+        isPartial: true, // Mark as partial session
+        notes: this.currentSessionNotes || ''
       };
       
       this.sessionHistory.push(sessionEntry);
+      
+      // Clear current session notes
+      this.currentSessionNotes = '';
       
       console.log(`SKIP TO BREAK: ${this.name} - Created partial session entry: ${elapsedMinutes}m work session`);
     }
@@ -536,10 +555,14 @@ class User {
         type: 'break',
         duration: elapsedMinutes, // Only the actual elapsed time, not the full break duration
         completedAt: new Date().toISOString(),
-        isPartial: true // Mark as partial session
+        isPartial: true, // Mark as partial session
+        notes: this.currentSessionNotes || ''
       };
       
       this.sessionHistory.push(sessionEntry);
+      
+      // Clear current session notes
+      this.currentSessionNotes = '';
       
       console.log(`SKIP TO FOCUS: ${this.name} - Created partial session entry: ${elapsedMinutes}m break session`);
     }
@@ -636,6 +659,7 @@ class User {
       completedSessions: this.completedSessions,
       sessionHistory: this.sessionHistory,
       currentSessionProgress: this.currentSessionProgress,
+      currentSessionNotes: this.currentSessionNotes,
       totalWorkTime: this.totalWorkTime,
       totalBreakTime: this.totalBreakTime,
       joinedAt: this.joinedAt,

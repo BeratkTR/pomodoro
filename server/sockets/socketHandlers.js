@@ -617,6 +617,79 @@ function initializeSocketHandlers(io, rooms, users) {
       triggerPersistenceSave(rooms, userStore);
     });
 
+    // Handle session notes  ----------------------------------------------
+    socket.on('update_session_notes', (data) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      const userInstance = room.getUser(user.id);
+      if (!userInstance) return;
+
+      const { sessionIndex, notes } = data;
+      
+      // Initialize currentSessionNotes if it doesn't exist
+      if (!userInstance.currentSessionNotes) {
+        userInstance.currentSessionNotes = '';
+      }
+      
+      // Helper to check if two dates are on the same calendar day
+      const isSameDay = (a, b) => {
+        return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+      };
+      
+      // Filter today's sessions (same logic as frontend)
+      const today = new Date();
+      const todaysSessionHistory = (userInstance.sessionHistory || []).filter(s => {
+        if (!s?.completedAt) return false;
+        const completedAt = new Date(s.completedAt);
+        return isSameDay(completedAt, today);
+      });
+      
+      console.log(`📝 Updating session notes for ${userInstance.name}:`, {
+        sessionIndex,
+        totalSessions: userInstance.sessionHistory?.length,
+        todaysSessions: todaysSessionHistory.length,
+        notes: notes.substring(0, 50)
+      });
+      
+      // Check if this is for a completed session (from today's filtered list)
+      if (todaysSessionHistory[sessionIndex]) {
+        // Find this session in the full sessionHistory array
+        const sessionToUpdate = todaysSessionHistory[sessionIndex];
+        const fullHistoryIndex = userInstance.sessionHistory.findIndex(s => 
+          s.completedAt === sessionToUpdate.completedAt
+        );
+        
+        if (fullHistoryIndex !== -1) {
+          userInstance.sessionHistory[fullHistoryIndex].notes = notes;
+          console.log(`✅ Completed session notes updated at full index ${fullHistoryIndex} (today's index ${sessionIndex})`);
+        }
+      } else {
+        // This is for the current/active session
+        userInstance.currentSessionNotes = notes;
+        console.log(`✅ Current session notes updated`);
+      }
+      
+      // Broadcast updated user data to room
+      io.to(user.roomId).emit('user_updated', {
+        userId: user.id,
+        userData: userInstance.getUserData()
+      });
+      
+      // Also emit specific session notes update event
+      io.to(user.roomId).emit('session_notes_updated', {
+        userId: user.id,
+        sessionIndex: sessionIndex,
+        notes: notes
+      });
+      
+      // Trigger persistence save for session notes changes
+      triggerPersistenceSave(rooms, userStore);
+    });
+
     // Handle chat messages  ----------------------------------------------
     socket.on('send_message', (data) => {
       const user = users.get(socket.id);

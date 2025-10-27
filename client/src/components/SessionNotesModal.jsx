@@ -5,8 +5,15 @@ const SessionNotesModal = ({ session, sessionIndex, onClose, onSave, readOnly = 
   const [notes, setNotes] = useState(session?.notes || '');
 
   useEffect(() => {
+    console.log('📝 Modal opened with session:', { 
+      sessionIndex, 
+      session, 
+      notes: session?.notes,
+      hasNotes: !!session?.notes,
+      readOnly 
+    });
     setNotes(session?.notes || '');
-  }, [session]);
+  }, [session, sessionIndex, readOnly]);
 
   // Handle ESC key press
   useEffect(() => {

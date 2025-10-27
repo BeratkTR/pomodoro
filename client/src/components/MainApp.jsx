@@ -483,11 +483,17 @@ function MainApp() {
     setPartnerForStats(null)
   }
 
+  // Helper to check if two dates are on the same calendar day
+  const isSameDay = (a, b) => {
+    return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+  };
+
   // Session notes modal handlers
   const handleSessionClick = (sessionIndex, sessionInfo, isCurrent = false, isPartner = false) => {
     setSelectedSessionIndex(sessionIndex)
     setIsPartnerSession(isPartner)
     
+    // Always get fresh data from current state
     if (isCurrent) {
       setSelectedSession({
         ...sessionInfo,
@@ -496,7 +502,26 @@ function MainApp() {
           : (currentUser.currentSessionNotes || '')
       })
     } else {
-      setSelectedSession(sessionInfo)
+      // Get fresh session data from TODAY's sessionHistory (filtered like in SessionProgress)
+      const targetUser = isPartner ? roomUsers.find(u => u.id !== currentUser.id) : currentUser
+      const fullSessionHistory = targetUser?.sessionHistory || []
+      const today = new Date()
+      const todaysSessionHistory = fullSessionHistory.filter(s => {
+        if (!s?.completedAt) return false
+        const completedAt = new Date(s.completedAt)
+        return isSameDay(completedAt, today)
+      })
+      
+      const freshSessionInfo = todaysSessionHistory[sessionIndex]
+      
+      console.log('🔍 Opening session notes:', { 
+        sessionIndex, 
+        todaysSessions: todaysSessionHistory.length,
+        freshNotes: freshSessionInfo?.notes,
+        hasNotes: !!freshSessionInfo?.notes
+      })
+      
+      setSelectedSession(freshSessionInfo || sessionInfo)
     }
     setShowSessionNotesModal(true)
   }
@@ -509,9 +534,11 @@ function MainApp() {
   }
 
   const handleSaveSessionNotes = (sessionIndex, notes) => {
+    console.log('💾 Saving session notes:', { sessionIndex, notes, isPartnerSession })
     if (!isPartnerSession) {
       // Only save if it's user's own session
       socketService.updateSessionNotes(sessionIndex, notes)
+      console.log('✅ Notes sent to server')
     }
     handleCloseSessionNotes()
   }

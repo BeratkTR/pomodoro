@@ -119,6 +119,10 @@ class UserStore {
       user.sessionHistory = userData.sessionHistory;
     }
     
+    if (userData.currentSessionNotes !== undefined) {
+      user.currentSessionNotes = userData.currentSessionNotes;
+    }
+    
     // Restore accumulated work and break times
     if (userData.totalWorkTime !== undefined) {
       user.totalWorkTime = userData.totalWorkTime;
