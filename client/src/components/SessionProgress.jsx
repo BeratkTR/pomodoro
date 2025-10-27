@@ -128,6 +128,20 @@ const SessionBar = ({
 const SessionProgress = ({ currentUser }) => {
   if (!currentUser) return null;
 
+  // Helper to check if two dates are on the same calendar day
+  const isSameDay = (a, b) => {
+    return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+  };
+
+  // Filter session history to only include today's entries
+  const fullSessionHistory = currentUser?.sessionHistory || [];
+  const today = new Date();
+  const todaysSessionHistory = fullSessionHistory.filter(s => {
+    if (!s?.completedAt) return false;
+    const completedAt = new Date(s.completedAt);
+    return isSameDay(completedAt, today);
+  });
+
   const formatDuration = (totalMinutes) => {
     const totalSeconds = Math.round(totalMinutes * 60);
     const hours = Math.floor(totalSeconds / 3600);
@@ -144,8 +158,10 @@ const SessionProgress = ({ currentUser }) => {
 
 
   const calculateStats = () => {
-    const completedSessions = currentUser.completedSessions || 0;
-    const currentSession = currentUser.timerState?.currentSession || 1;
+    // Ensure stats are calculated per-day (today only)
+    const completedSessions = todaysSessionHistory.length;
+    // Current session index within today: completed + 1 (at least 1)
+    const currentSession = Math.max(1, completedSessions + 1);
     const timerState = currentUser.timerState;
     
     // Get timer settings
@@ -182,11 +198,22 @@ const SessionProgress = ({ currentUser }) => {
   };
 
   const renderSessionBars = (completedSessions, currentSession) => {
-    const totalBars = Math.max(1, currentSession);
-    const sessionHistory = currentUser?.sessionHistory || [];
+    // Only use today's session history to render bars
+    const sessionHistory = todaysSessionHistory;
+    
+    // Fresh day if no sessions completed today
+    const isFreshDay = sessionHistory.length === 0 && completedSessions === 0;
+    
+    // Determine how many bars to render today
+    // If timer is active, show an extra bar for the current session
+    const timerState = currentUser?.timerState;
+    const hasActiveTimer = !!(timerState && timerState.isActive);
+    const totalBars = isFreshDay ? 1 : Math.max(1, sessionHistory.length + (hasActiveTimer ? 1 : 0));
+    
+    // Dead time gaps should also be calculated only within today's scope
     const deadTimeGaps = calculateDeadTimeGaps(
-      sessionHistory, 
-      currentUser?.timerState, 
+      sessionHistory,
+      timerState,
       currentUser?.settings
     );
     
@@ -217,6 +244,9 @@ const SessionProgress = ({ currentUser }) => {
           const historyIndex = index;
           
       // Add session bar
+      // For fresh day, force the first session to be treated as current session
+      const effectiveCurrentSession = isFreshDay ? 1 : Math.min(currentSession, totalBars);
+      
       elements.push(
             <SessionBar 
           key={`session-${sessionNum}`}
@@ -225,7 +255,7 @@ const SessionProgress = ({ currentUser }) => {
               sessionHistory={sessionHistory}
               pomodoroLength={pomodoroLength}
               breakLength={breakLength}
-              currentSession={currentSession}
+              currentSession={effectiveCurrentSession}
               currentTimerState={currentUser?.timerState}
             />
           );

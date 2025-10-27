@@ -130,6 +130,11 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
   // State to force re-render for live updates
   const [, setUpdateTrigger] = useState(0);
   
+  // Helper to check if two dates are on the same calendar day
+  const isSameDay = (a, b) => {
+    return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+  };
+  
   // Get partner (the other user that's not the current user)
   const partner = users.find(user => user.id !== currentUserId);
   
@@ -194,9 +199,14 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
   // Calculate partner stats with live updates
   const calculatePartnerStats = (partner) => {
     if (!partner) return null;
-
-    const completedSessions = partner.completedSessions || 0;
-    const currentSession = partner.timerState?.currentSession || 1;
+    
+    // Compute per-day stats (today only) for partner
+    const fullSessionHistory = partner.sessionHistory || [];
+    const today = new Date();
+    const todaysHistory = fullSessionHistory.filter(s => s?.completedAt && isSameDay(new Date(s.completedAt), today));
+    const completedSessions = todaysHistory.length;
+    // Current session index within today: completed + 1 (at least 1)
+    const currentSession = Math.max(1, completedSessions + 1);
     const timerState = partner.timerState;
     
     // Get timer settings
@@ -235,12 +245,27 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
   };
 
   const renderSessionBars = (completedSessions, currentSession, partner) => {
-    // Only show bars up to current session, starting with 1 bar minimum
-    const totalBars = Math.max(1, currentSession);
-    const sessionHistory = partner?.sessionHistory || [];
+    // Filter partner's session history to only today's entries
+    const fullSessionHistory = partner?.sessionHistory || [];
+    const today = new Date();
+    const sessionHistory = fullSessionHistory.filter(s => {
+      if (!s?.completedAt) return false;
+      const completedAt = new Date(s.completedAt);
+      return isSameDay(completedAt, today);
+    });
+    
+    // Fresh day if no sessions completed today
+    const isFreshDay = sessionHistory.length === 0 && completedSessions === 0;
+    
+    // Determine bar count only from today's data; if timer is active, add current bar
+    const timerState = partner?.timerState;
+    const hasActiveTimer = !!(timerState && timerState.isActive);
+    const totalBars = isFreshDay ? 1 : Math.max(1, sessionHistory.length + (hasActiveTimer ? 1 : 0));
+    
+    // Dead time gaps also within today's scope
     const deadTimeGaps = calculateDeadTimeGaps(
       sessionHistory, 
-      partner?.timerState, 
+      timerState, 
       partner?.settings
     );
     
@@ -276,6 +301,9 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
           const historyIndex = index;
           
       // Add session bar
+      // For fresh day, force the first session to be treated as current session
+      const effectiveCurrentSession = isFreshDay ? 1 : Math.min(currentSession, totalBars);
+      
       elements.push(
             <SessionBar 
           key={`session-${sessionNum}`}
@@ -284,7 +312,7 @@ const StudyPartners = ({ users = [], currentUserId, currentUser, currentRoom, on
               sessionHistory={sessionHistory}
               pomodoroLength={pomodoroLength}
               breakLength={breakLength}
-              currentSession={currentSession}
+              currentSession={effectiveCurrentSession}
               currentTimerState={partner?.timerState}
             />
           );

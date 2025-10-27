@@ -223,9 +223,13 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
   // Calculate personal stats with live updates
   const calculatePersonalStats = () => {
     if (!currentUser) return null;
-
-    const completedSessions = currentUser.completedSessions || 0;
-    const currentSession = currentUser.timerState?.currentSession || 1;
+    
+    // Use today-only session history for counts shown in modal's Today tab
+    const fullSessionHistory = currentUser.sessionHistory || [];
+    const today = new Date();
+    const todaysHistory = fullSessionHistory.filter(s => s?.completedAt && (new Date(s.completedAt)).getDate() === today.getDate() && (new Date(s.completedAt)).getMonth() === today.getMonth() && (new Date(s.completedAt)).getFullYear() === today.getFullYear());
+    const completedSessions = todaysHistory.length;
+    const currentSession = Math.max(1, completedSessions + 1);
     const timerState = currentUser.timerState;
     
     // Get timer settings
@@ -271,11 +275,18 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
   };
 
   const renderSessionBars = (completedSessions, currentSession, sessionHistory = null, isHistorical = false) => {
-    // Use provided sessionHistory or fall back to current user's
-    const historyToUse = sessionHistory || currentUser?.sessionHistory || [];
+    // Use provided sessionHistory or fall back to current user's TODAY-ONLY history
+    const today = new Date();
+    const baseHistory = sessionHistory || currentUser?.sessionHistory || [];
+    const historyToUse = isHistorical
+      ? baseHistory
+      : baseHistory.filter(s => s?.completedAt && (new Date(s.completedAt)).getDate() === today.getDate() && (new Date(s.completedAt)).getMonth() === today.getMonth() && (new Date(s.completedAt)).getFullYear() === today.getFullYear());
+    
+    // Check if this is a fresh day (after daily reset) - only for current day view
+    const isFreshDay = !isHistorical && historyToUse.length === 0 && completedSessions === 0;
     
     // For historical data, show all completed sessions; for current day, show up to current session
-    const totalBars = isHistorical ? historyToUse.length : Math.max(1, currentSession);
+    const totalBars = isHistorical ? historyToUse.length : (isFreshDay ? 1 : Math.max(1, currentSession));
     
     // Get timer settings
     const pomodoroLength = currentUser?.settings?.pomodoro || 50;
@@ -295,6 +306,11 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
           const sessionNum = index + 1;
           const historyIndex = index;
           
+          // For fresh day, force the first session to be treated as current session
+          const effectiveCurrentSession = isHistorical 
+            ? historyToUse.length + 1 
+            : (isFreshDay ? 1 : currentSession);
+          
           return (
             <SessionBar 
               key={sessionNum}
@@ -303,7 +319,7 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
               sessionHistory={historyToUse}
               pomodoroLength={pomodoroLength}
               breakLength={breakLength}
-              currentSession={isHistorical ? historyToUse.length + 1 : currentSession}
+              currentSession={effectiveCurrentSession}
               currentTimerState={isHistorical ? null : currentUser?.timerState}
             />
           );

@@ -17,7 +17,7 @@ body {
 
   background-image: url('/src/foto.jpeg'); 
   background-size: cover;       /* make it cover the whole viewport */
-  background-position: center;  /* center the image */
+  background-position: center 40%;  /* center the image */
   background-repeat: no-repeat;
   min-height: 100vh;            /* ensure it fills the screen */
   width: 100%;
