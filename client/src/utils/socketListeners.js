@@ -247,52 +247,106 @@ export const setupSocketListeners = (
 
   // Session notes events
   socketService.on('session_notes_updated', (data) => {
-    console.log('Session notes updated:', data)
+    console.log('📝 Session notes updated:', data)
     const currentUser = getCurrentUser()
     
     if (data.userId === currentUser.id) {
       // This is current user's session notes update
       setCurrentUser(prev => {
-        // Check if this is for a completed session or current session
-        if (prev.sessionHistory && prev.sessionHistory[data.sessionIndex]) {
-          // Update completed session notes
-          const updatedSessionHistory = [...prev.sessionHistory]
-          updatedSessionHistory[data.sessionIndex] = {
-            ...updatedSessionHistory[data.sessionIndex],
-            notes: data.notes
-          }
-          return {
-            ...prev,
-            sessionHistory: updatedSessionHistory
-          }
-        } else {
+        // Use the isCurrent flag from backend to determine which to update
+        if (data.isCurrent) {
           // Update current session notes
+          console.log('✅ Updating current session notes for user')
           return {
             ...prev,
             currentSessionNotes: data.notes
           }
+        } else {
+          // Update completed session notes
+          console.log('✅ Updating completed session notes at index', data.sessionIndex)
+          
+          // Filter today's sessions to match backend logic
+          const today = new Date()
+          const isSameDay = (a, b) => {
+            return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
+          }
+          const todaysSessionHistory = (prev.sessionHistory || []).filter(s => {
+            if (!s?.completedAt) return false
+            const completedAt = new Date(s.completedAt)
+            return isSameDay(completedAt, today)
+          })
+          
+          // Find the session in full history
+          const sessionToUpdate = todaysSessionHistory[data.sessionIndex]
+          if (sessionToUpdate) {
+            const fullHistoryIndex = prev.sessionHistory.findIndex(s => 
+              s.completedAt === sessionToUpdate.completedAt
+            )
+            
+            if (fullHistoryIndex !== -1) {
+              const updatedSessionHistory = [...prev.sessionHistory]
+              updatedSessionHistory[fullHistoryIndex] = {
+                ...updatedSessionHistory[fullHistoryIndex],
+                notes: data.notes
+              }
+              return {
+                ...prev,
+                sessionHistory: updatedSessionHistory
+              }
+            }
+          }
+          
+          return prev
         }
       })
     } else {
       // This is partner's session notes update
       setRoomUsers(prev => prev.map(user => {
         if (user.id === data.userId) {
-          // Check if this is for a completed session or current session
-          if (user.sessionHistory && user.sessionHistory[data.sessionIndex]) {
-            const updatedSessionHistory = [...(user.sessionHistory || [])]
-            updatedSessionHistory[data.sessionIndex] = {
-              ...updatedSessionHistory[data.sessionIndex],
-              notes: data.notes
-            }
-            return {
-              ...user,
-              sessionHistory: updatedSessionHistory
-            }
-          } else {
+          // Use the isCurrent flag from backend to determine which to update
+          if (data.isCurrent) {
+            // Update current session notes
+            console.log('✅ Updating partner current session notes')
             return {
               ...user,
               currentSessionNotes: data.notes
             }
+          } else {
+            // Update completed session notes
+            console.log('✅ Updating partner completed session notes at index', data.sessionIndex)
+            
+            // Filter today's sessions to match backend logic
+            const today = new Date()
+            const isSameDay = (a, b) => {
+              return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
+            }
+            const todaysSessionHistory = (user.sessionHistory || []).filter(s => {
+              if (!s?.completedAt) return false
+              const completedAt = new Date(s.completedAt)
+              return isSameDay(completedAt, today)
+            })
+            
+            // Find the session in full history
+            const sessionToUpdate = todaysSessionHistory[data.sessionIndex]
+            if (sessionToUpdate) {
+              const fullHistoryIndex = user.sessionHistory.findIndex(s => 
+                s.completedAt === sessionToUpdate.completedAt
+              )
+              
+              if (fullHistoryIndex !== -1) {
+                const updatedSessionHistory = [...user.sessionHistory]
+                updatedSessionHistory[fullHistoryIndex] = {
+                  ...updatedSessionHistory[fullHistoryIndex],
+                  notes: data.notes
+                }
+                return {
+                  ...user,
+                  sessionHistory: updatedSessionHistory
+                }
+              }
+            }
+            
+            return user
           }
         }
         return user

@@ -89,32 +89,32 @@
   font-family: inherit;
   resize: vertical;
   min-height: 200px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #1f2937;
+  background: rgba(40, 40, 40, 0.9);
+  color: #e0e0e0;
   transition: all 0.3s ease;
   box-sizing: border-box;
   line-height: 1.5;
+  overflow: hidden;
 }
 
 .notes-textarea:focus {
   outline: none;
-  background: white;
-  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.3);
+  background: rgba(40, 40, 40, 1);
 }
 
 .notes-textarea::placeholder {
-  color: #9ca3af;
+  color: rgba(255, 255, 255, 0.5);
   font-style: italic;
 }
 
 .notes-textarea.read-only {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(40, 40, 40, 0.7);
   cursor: default;
-  color: #374151;
+  color: #b0b0b0;
 }
 
 .notes-textarea.read-only:focus {
-  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.2);
+  outline: none;
 }
 
 .save-btn {

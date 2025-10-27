@@ -656,7 +656,9 @@ function initializeSocketHandlers(io, rooms, users) {
       });
       
       // Check if this is for a completed session (from today's filtered list)
-      if (todaysSessionHistory[sessionIndex]) {
+      const isCompletedSession = todaysSessionHistory[sessionIndex];
+      
+      if (isCompletedSession) {
         // Find this session in the full sessionHistory array
         const sessionToUpdate = todaysSessionHistory[sessionIndex];
         const fullHistoryIndex = userInstance.sessionHistory.findIndex(s => 
@@ -679,11 +681,12 @@ function initializeSocketHandlers(io, rooms, users) {
         userData: userInstance.getUserData()
       });
       
-      // Also emit specific session notes update event
+      // Also emit specific session notes update event with isCurrent flag
       io.to(user.roomId).emit('session_notes_updated', {
         userId: user.id,
         sessionIndex: sessionIndex,
-        notes: notes
+        notes: notes,
+        isCurrent: !isCompletedSession // Flag to indicate if this is current session
       });
       
       // Trigger persistence save for session notes changes
