@@ -48,9 +48,11 @@ const SessionBar = ({
     return "👶 Getting Started";
   };
 
-  // Check if this session is completed
-  const isCompleted = sessionNum <= (sessionHistory?.length || 0);
-  const isCurrent = sessionNum === currentSession;
+  // Check if this session is completed, current, or pending
+  // A session is completed ONLY if it exists in sessionHistory
+  const isCompleted = historyIndex < (sessionHistory?.length || 0);
+  // A session is current if it matches currentSession AND is NOT completed
+  const isCurrent = !isCompleted && sessionNum === currentSession;
   const isPending = sessionNum > currentSession;
   
   // Get session info from history if available
@@ -107,20 +109,70 @@ const SessionBar = ({
   }
 
   // Check if this session has notes (for completed) or current session has notes
-  const hasNotes = (sessionInfo && sessionInfo.notes && sessionInfo.notes.trim().length > 0) ||
-                   (isCurrent && currentTimerState && currentUser?.currentSessionNotes && currentUser.currentSessionNotes.trim().length > 0);
+  // Only show notes for pomodoro sessions, not breaks
+  const hasNotes = (sessionInfo && sessionInfo.type === 'pomodoro' && sessionInfo.notes && sessionInfo.notes.trim().length > 0) ||
+                   (isCurrent && currentTimerState && currentTimerState.mode === 'pomodoro' && currentUser?.currentSessionNotes && currentUser.currentSessionNotes.trim().length > 0);
+  
+  if (isCompleted && sessionInfo?.type === 'pomodoro') {
+    console.log(`📝 Session ${historyIndex} notes check:`, {
+      hasNotes,
+      sessionInfo,
+      notes: sessionInfo?.notes,
+      notesLength: sessionInfo?.notes?.length
+    });
+  }
 
   const handleClick = () => {
-    // Allow clicking on both completed and current sessions
+    // Only allow clicking on pomodoro sessions (not breaks) for notes
+    const isPomodoro = isCurrent 
+      ? (currentTimerState?.mode === 'pomodoro')
+      : (sessionInfo?.type === 'pomodoro');
+    
+    if (!isPomodoro) {
+      console.log('⏸️ Ignoring click on break session - notes only for pomodoros');
+      return;
+    }
+    
+    // Allow clicking on both completed and current pomodoro sessions
     if ((isCompleted || isCurrent) && (sessionInfo || isCurrent)) {
+      // For current session, include currentSessionNotes from currentUser
+      const sessionData = isCurrent 
+        ? { type: sessionType, duration: duration, notes: currentUser?.currentSessionNotes || '' }
+        : (sessionInfo || { type: sessionType, duration: duration, notes: '' });
+      
+      console.log('📝 SessionProgress click:', { 
+        historyIndex, 
+        isCurrent, 
+        sessionData,
+        currentUserCurrentSessionNotes: currentUser?.currentSessionNotes 
+      });
+      
       onSessionClick(
         historyIndex, 
-        sessionInfo || { type: sessionType, duration: duration, notes: '' },
+        sessionData,
         isCurrent // Pass whether this is the current session
       );
     }
   };
 
+  // Only pomodoro sessions are clickable
+  const isClickable = (isCompleted || isCurrent) && (
+    isCurrent 
+      ? (currentTimerState?.mode === 'pomodoro')
+      : (sessionInfo?.type === 'pomodoro')
+  );
+  
+  // Debug clickable logic for completed pomodoro sessions
+  if (isCompleted && sessionInfo?.type === 'pomodoro') {
+    console.log(`🖱️ Clickable check for session ${historyIndex}:`, {
+      isCompleted,
+      isCurrent,
+      sessionInfoType: sessionInfo?.type,
+      isClickable,
+      hasNotes
+    });
+  }
+  
   return (
     <div 
       className="session-bar-container"
@@ -128,7 +180,7 @@ const SessionBar = ({
       onMouseLeave={() => setShowTooltip(false)}
     >
       <div 
-        className={`session-bar ${sessionClass} ${(isCompleted || isCurrent) ? 'clickable' : ''}`}
+        className={`session-bar ${sessionClass} ${isClickable ? 'clickable' : ''}`}
         style={{ width: `${barWidth}px` }}
         onClick={handleClick}
       >
@@ -162,6 +214,12 @@ const SessionProgress = ({ currentUser, onSessionClick }) => {
     if (!s?.completedAt) return false;
     const completedAt = new Date(s.completedAt);
     return isSameDay(completedAt, today);
+  });
+  
+  console.log('🔄 SessionProgress render:', {
+    fullHistoryLength: fullSessionHistory.length,
+    todaysHistoryLength: todaysSessionHistory.length,
+    lastSession: todaysSessionHistory[todaysSessionHistory.length - 1]
   });
 
   const formatDuration = (totalMinutes) => {
@@ -227,10 +285,14 @@ const SessionProgress = ({ currentUser, onSessionClick }) => {
     const isFreshDay = sessionHistory.length === 0 && completedSessions === 0;
     
     // Determine how many bars to render today
-    // If timer is active, show an extra bar for the current session
+    // Show current session bar if timer is active OR has been started (has elapsed time)
     const timerState = currentUser?.timerState;
-    const hasActiveTimer = !!(timerState && timerState.isActive);
-    const totalBars = isFreshDay ? 1 : Math.max(1, sessionHistory.length + (hasActiveTimer ? 1 : 0));
+    const pomodoroLength = currentUser?.settings?.pomodoro || 50;
+    const breakLength = currentUser?.settings?.break || 10;
+    const totalTime = timerState?.mode === 'pomodoro' ? pomodoroLength * 60 : breakLength * 60;
+    const hasElapsedTime = timerState && timerState.timeLeft < totalTime;
+    const hasCurrentSession = !!(timerState && (timerState.isActive || hasElapsedTime));
+    const totalBars = isFreshDay ? 1 : Math.max(1, sessionHistory.length + (hasCurrentSession ? 1 : 0));
     
     // Dead time gaps should also be calculated only within today's scope
     const deadTimeGaps = calculateDeadTimeGaps(
@@ -243,9 +305,6 @@ const SessionProgress = ({ currentUser, onSessionClick }) => {
     if (deadTimeGaps.length > 0) {
       console.log('🔍 Dead time gaps found:', deadTimeGaps);
     }
-    
-    const pomodoroLength = currentUser?.settings?.pomodoro || 50;
-    const breakLength = currentUser?.settings?.break || 10;
     
     const elements = [];
     

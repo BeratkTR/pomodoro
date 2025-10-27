@@ -332,16 +332,15 @@ class User {
       this.totalBreakTime += this.settings.break;
       console.log(`TIMER COMPLETE: ${this.name} - totalBreakTime is now ${this.totalBreakTime}m`);
       
-      // Add to session history with current notes
+      // Add to session history without notes (breaks don't have notes)
       this.sessionHistory.push({
         type: 'break',
         completedAt: Date.now(),
         duration: this.settings.break, // Store the actual duration completed
-        notes: this.currentSessionNotes || '' // Include current session notes
+        notes: '' // Breaks don't have notes
       });
       
-      // Clear current session notes after moving to history
-      this.currentSessionNotes = '';
+      // Don't clear currentSessionNotes here - it should persist from pomodoro to next pomodoro
       
       // Break completed, switch to pomodoro
       this.timerState.mode = 'pomodoro';
@@ -362,6 +361,12 @@ class User {
         totalBreakTime: this.totalBreakTime
       },
       wasSkipped: false // Natural completion, not skipped
+    });
+    
+    // Also broadcast full user data to ensure UI updates with session history
+    io.to(roomId).emit('user_updated', {
+      userId: this.id,
+      userData: this.getUserData()
     });
 
     // Auto-start next session if enabled and user is online
@@ -403,6 +408,10 @@ class User {
     this.timerState.timeLeft = this.settings.pomodoro * 60;
     // Only reset current session timer, keep session history and total times
     this.currentSessionProgress = 0;
+    
+    // Clear current session notes when resetting
+    this.currentSessionNotes = '';
+    console.log(`RESET TIMER: ${this.name} - Cleared current session notes`);
     
     // Note: Keep completedSessions, sessionHistory, totalWorkTime and totalBreakTime - they should persist
     console.log(`RESET TIMER: ${this.name} - After reset: totalWorkTime=${this.totalWorkTime}, totalBreakTime=${this.totalBreakTime}`);
@@ -550,19 +559,18 @@ class User {
       // Add the partial break time to total break time
       this.totalBreakTime += elapsedMinutes;
       
-      // Create session history entry for the partial break session
+      // Create session history entry for the partial break session (no notes for breaks)
       const sessionEntry = {
         type: 'break',
         duration: elapsedMinutes, // Only the actual elapsed time, not the full break duration
         completedAt: new Date().toISOString(),
         isPartial: true, // Mark as partial session
-        notes: this.currentSessionNotes || ''
+        notes: '' // Breaks don't have notes
       };
       
       this.sessionHistory.push(sessionEntry);
       
-      // Clear current session notes
-      this.currentSessionNotes = '';
+      // Don't clear currentSessionNotes - it should persist from pomodoro to pomodoro
       
       console.log(`SKIP TO FOCUS: ${this.name} - Created partial session entry: ${elapsedMinutes}m break session`);
     }

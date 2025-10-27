@@ -155,6 +155,7 @@ function MainApp() {
   const [selectedSession, setSelectedSession] = useState(null)
   const [selectedSessionIndex, setSelectedSessionIndex] = useState(null)
   const [isPartnerSession, setIsPartnerSession] = useState(false)
+  const [isCurrentSession, setIsCurrentSession] = useState(false)
 
   // Sound permission state (hidden for now)
   // const [showSoundPermissionModal, setShowSoundPermissionModal] = useState(false)
@@ -492,14 +493,31 @@ function MainApp() {
   const handleSessionClick = (sessionIndex, sessionInfo, isCurrent = false, isPartner = false) => {
     setSelectedSessionIndex(sessionIndex)
     setIsPartnerSession(isPartner)
+    setIsCurrentSession(isCurrent)
+    
+    console.log('📝 handleSessionClick:', { 
+      sessionIndex, 
+      isCurrent, 
+      isPartner,
+      sessionInfo,
+      currentUserCurrentSessionNotes: currentUser.currentSessionNotes 
+    })
     
     // Always get fresh data from current state
     if (isCurrent) {
+      const notesToUse = isPartner 
+        ? (roomUsers.find(u => u.id !== currentUser.id)?.currentSessionNotes || '')
+        : (currentUser.currentSessionNotes || '');
+      
+      console.log('🔍 Current session - Setting notes:', { 
+        notesToUse, 
+        length: notesToUse.length,
+        isPartner 
+      });
+      
       setSelectedSession({
         ...sessionInfo,
-        notes: isPartner 
-          ? (roomUsers.find(u => u.id !== currentUser.id)?.currentSessionNotes || '')
-          : (currentUser.currentSessionNotes || '')
+        notes: notesToUse
       })
     } else {
       // Get fresh session data from TODAY's sessionHistory (filtered like in SessionProgress)
@@ -531,13 +549,14 @@ function MainApp() {
     setSelectedSession(null)
     setSelectedSessionIndex(null)
     setIsPartnerSession(false)
+    setIsCurrentSession(false)
   }
 
   const handleSaveSessionNotes = (sessionIndex, notes) => {
-    console.log('💾 Saving session notes:', { sessionIndex, notes, isPartnerSession })
+    console.log('💾 Saving session notes:', { sessionIndex, notes, isPartnerSession, isCurrentSession })
     if (!isPartnerSession) {
       // Only save if it's user's own session
-      socketService.updateSessionNotes(sessionIndex, notes)
+      socketService.updateSessionNotes(sessionIndex, notes, isCurrentSession)
       console.log('✅ Notes sent to server')
     }
     handleCloseSessionNotes()
@@ -714,7 +733,63 @@ function MainApp() {
       {showPartnerStatsModal && partnerForStats && (
         <PersonalStatsModal 
           onClose={handleClosePartnerStats} 
-          currentUser={partnerForStats} 
+          currentUser={partnerForStats}
+          onSessionClick={(sessionIndex, sessionInfo, isCurrent) => {
+            // Check if this is partner's stats or own stats
+            const isPartner = partnerForStats.id !== currentUser.id
+            
+            setSelectedSessionIndex(sessionIndex)
+            setIsPartnerSession(isPartner)
+            setIsCurrentSession(isCurrent)
+            
+            console.log('📝 Stats modal session click:', { sessionIndex, isCurrent, isPartner })
+            
+            if (isCurrent) {
+              setSelectedSession({
+                ...sessionInfo,
+                notes: isPartner 
+                  ? (partnerForStats.currentSessionNotes || '')
+                  : (currentUser.currentSessionNotes || '')
+              })
+            } else {
+              // For completed sessions, use the sessionInfo directly if it has all data
+              // This works for both today's sessions and historical sessions
+              if (sessionInfo && sessionInfo.completedAt) {
+                // Session info is complete, use it directly (for historical data)
+                console.log('🔍 Opening session notes from stats modal (direct):', { 
+                  sessionIndex, 
+                  sessionInfo,
+                  notes: sessionInfo?.notes,
+                  hasNotes: !!sessionInfo?.notes,
+                  isPartner
+                })
+                setSelectedSession(sessionInfo)
+              } else {
+                // Fallback: Get fresh session data from TODAY's sessionHistory
+                const targetUser = isPartner ? partnerForStats : currentUser
+                const fullSessionHistory = targetUser?.sessionHistory || []
+                const today = new Date()
+                const todaysSessionHistory = fullSessionHistory.filter(s => {
+                  if (!s?.completedAt) return false
+                  const completedAt = new Date(s.completedAt)
+                  return isSameDay(completedAt, today)
+                })
+                
+                const freshSessionInfo = todaysSessionHistory[sessionIndex]
+                
+                console.log('🔍 Opening session notes from stats modal (today):', { 
+                  sessionIndex, 
+                  todaysSessions: todaysSessionHistory.length,
+                  freshNotes: freshSessionInfo?.notes,
+                  hasNotes: !!freshSessionInfo?.notes,
+                  isPartner
+                })
+                
+                setSelectedSession(freshSessionInfo || sessionInfo)
+              }
+            }
+            setShowSessionNotesModal(true)
+          }}
         />
       )}
 

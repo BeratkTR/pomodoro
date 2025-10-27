@@ -628,51 +628,56 @@ function initializeSocketHandlers(io, rooms, users) {
       const userInstance = room.getUser(user.id);
       if (!userInstance) return;
 
-      const { sessionIndex, notes } = data;
+      const { sessionIndex, notes, isCurrent } = data;
       
       // Initialize currentSessionNotes if it doesn't exist
       if (!userInstance.currentSessionNotes) {
         userInstance.currentSessionNotes = '';
       }
       
-      // Helper to check if two dates are on the same calendar day
-      const isSameDay = (a, b) => {
-        return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
-      };
-      
-      // Filter today's sessions (same logic as frontend)
-      const today = new Date();
-      const todaysSessionHistory = (userInstance.sessionHistory || []).filter(s => {
-        if (!s?.completedAt) return false;
-        const completedAt = new Date(s.completedAt);
-        return isSameDay(completedAt, today);
-      });
-      
       console.log(`📝 Updating session notes for ${userInstance.name}:`, {
         sessionIndex,
+        isCurrent,
         totalSessions: userInstance.sessionHistory?.length,
-        todaysSessions: todaysSessionHistory.length,
         notes: notes.substring(0, 50)
       });
       
-      // Check if this is for a completed session (from today's filtered list)
-      const isCompletedSession = todaysSessionHistory[sessionIndex];
-      
-      if (isCompletedSession) {
-        // Find this session in the full sessionHistory array
-        const sessionToUpdate = todaysSessionHistory[sessionIndex];
-        const fullHistoryIndex = userInstance.sessionHistory.findIndex(s => 
-          s.completedAt === sessionToUpdate.completedAt
-        );
-        
-        if (fullHistoryIndex !== -1) {
-          userInstance.sessionHistory[fullHistoryIndex].notes = notes;
-          console.log(`✅ Completed session notes updated at full index ${fullHistoryIndex} (today's index ${sessionIndex})`);
-        }
-      } else {
+      // Use the isCurrent flag from frontend to determine which to update
+      if (isCurrent) {
         // This is for the current/active session
         userInstance.currentSessionNotes = notes;
-        console.log(`✅ Current session notes updated`);
+        console.log(`✅ Current session notes updated (isCurrent=true)`);
+      } else {
+        // This is for a completed session - use the index to find it in today's history
+        // Helper to check if two dates are on the same calendar day
+        const isSameDay = (a, b) => {
+          return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+        };
+        
+        // Filter today's sessions (same logic as frontend)
+        const today = new Date();
+        const todaysSessionHistory = (userInstance.sessionHistory || []).filter(s => {
+          if (!s?.completedAt) return false;
+          const completedAt = new Date(s.completedAt);
+          return isSameDay(completedAt, today);
+        });
+        
+        console.log(`📝 Looking for completed session at index ${sessionIndex} (today has ${todaysSessionHistory.length} sessions)`);
+        
+        const sessionToUpdate = todaysSessionHistory[sessionIndex];
+        if (sessionToUpdate) {
+          // Find this session in the full sessionHistory array
+          const fullHistoryIndex = userInstance.sessionHistory.findIndex(s => 
+            s.completedAt === sessionToUpdate.completedAt
+          );
+          
+          if (fullHistoryIndex !== -1) {
+            userInstance.sessionHistory[fullHistoryIndex].notes = notes;
+            console.log(`✅ Completed session notes updated at full index ${fullHistoryIndex} (today's index ${sessionIndex})`);
+          }
+        } else {
+          console.log(`⚠️ Completed session not found at index ${sessionIndex}`);
+        }
       }
       
       // Broadcast updated user data to room
@@ -686,7 +691,7 @@ function initializeSocketHandlers(io, rooms, users) {
         userId: user.id,
         sessionIndex: sessionIndex,
         notes: notes,
-        isCurrent: !isCompletedSession // Flag to indicate if this is current session
+        isCurrent: isCurrent // Use the flag from frontend
       });
       
       // Trigger persistence save for session notes changes

@@ -130,16 +130,22 @@ export const setupSocketListeners = (
       console.log('📈 User data:', data.userData)
       
       setCurrentUser(prev => {
+        console.log('📥 Received session history:', data.userData?.sessionHistory);
+        console.log('📋 Previous session history:', prev.sessionHistory);
+        console.log('🔍 Last session in received history:', data.userData?.sessionHistory?.[data.userData?.sessionHistory?.length - 1]);
+        
         const newUserState = {
           ...prev,
           timerState: data.timerState,
-          completedSessions: data.userData?.completedSessions || prev.completedSessions,
-          totalWorkTime: data.userData?.totalWorkTime || prev.totalWorkTime,
-          totalBreakTime: data.userData?.totalBreakTime || prev.totalBreakTime,
-          sessionHistory: data.userData?.sessionHistory || prev.sessionHistory
+          completedSessions: data.userData?.completedSessions !== undefined ? data.userData.completedSessions : prev.completedSessions,
+          totalWorkTime: data.userData?.totalWorkTime !== undefined ? data.userData.totalWorkTime : prev.totalWorkTime,
+          totalBreakTime: data.userData?.totalBreakTime !== undefined ? data.userData.totalBreakTime : prev.totalBreakTime,
+          sessionHistory: data.userData?.sessionHistory || prev.sessionHistory,
+          currentSessionNotes: '' // Clear current session notes after completion
         };
         
-        console.log('🔄 Updated user state:', newUserState)
+        console.log('🔄 Updated user state:', newUserState);
+        console.log('📊 New sessionHistory length:', newUserState.sessionHistory?.length);
         return newUserState;
       })
       
@@ -224,12 +230,14 @@ export const setupSocketListeners = (
   socketService.on('user_updated', (data) => {
     console.log('User data update received:', data)
     console.log('User data totalWorkTime:', data.userData?.totalWorkTime, 'totalBreakTime:', data.userData?.totalBreakTime)
+    console.log('📋 SessionHistory in user_updated:', data.userData?.sessionHistory)
     const currentUser = getCurrentUser()
     
     if (data.userId === currentUser.id) {
       // This is current user's data update
       console.log('Updating current user data (tasks, etc.)')
       console.log('Current user before update - totalWorkTime:', currentUser.totalWorkTime, 'totalBreakTime:', currentUser.totalBreakTime)
+      console.log('📊 New sessionHistory length:', data.userData?.sessionHistory?.length)
       setCurrentUser(prev => ({
         ...prev,
         ...data.userData

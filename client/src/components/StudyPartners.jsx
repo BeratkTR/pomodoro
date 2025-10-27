@@ -72,7 +72,8 @@ const SessionBar = React.memo(({
     barClass += ` completed ${sessionType}${isPartial ? ' partial' : ''}`;
     isCompleted = true;
     sessionInfo = sessionData;
-    hasNotes = sessionInfo.notes && sessionInfo.notes.trim().length > 0;
+    // Only show notes for pomodoro sessions, not breaks
+    hasNotes = sessionInfo.type === 'pomodoro' && sessionInfo.notes && sessionInfo.notes.trim().length > 0;
     
     // For completed sessions, use the actual duration that was completed
     // If duration is stored in session history, use that; otherwise fall back to current settings
@@ -86,8 +87,8 @@ const SessionBar = React.memo(({
     barClass += ' current';
     isCurrent = true;
     
-    // Check if current session has notes
-    if (partner && partner.currentSessionNotes) {
+    // Check if current session has notes (only for pomodoro mode)
+    if (partner && partner.currentSessionNotes && currentTimerState?.mode === 'pomodoro') {
       hasNotes = partner.currentSessionNotes.trim().length > 0;
     }
     
@@ -126,12 +127,23 @@ const SessionBar = React.memo(({
   }
   
   const handleClick = () => {
-    // Allow clicking on both completed and current sessions for partner
+    // Only allow clicking on pomodoro sessions (not breaks) for notes
+    const isPomodoro = sessionInfo?.type === 'pomodoro';
+    
+    if (!isPomodoro) {
+      console.log('⏸️ Ignoring click on partner break session - notes only for pomodoros');
+      return;
+    }
+    
+    // Allow clicking on both completed and current pomodoro sessions for partner
     if (isPartnerSession && (isCompleted || isCurrent) && sessionInfo && onSessionClick) {
       onSessionClick(historyIndex, sessionInfo, isCurrent);
     }
   };
 
+  // Only pomodoro sessions are clickable
+  const isClickable = isPartnerSession && (isCompleted || isCurrent) && sessionInfo?.type === 'pomodoro';
+  
   return (
     <div 
       className="session-bar-container"
@@ -139,7 +151,7 @@ const SessionBar = React.memo(({
       onMouseLeave={() => setShowTooltip(false)}
     >
       <div 
-        className={`${barClass} ${(isPartnerSession && (isCompleted || isCurrent)) ? 'clickable' : ''}`}
+        className={`${barClass} ${isClickable ? 'clickable' : ''}`}
         style={{ 
           width: `${barWidth}px`,
           minWidth: `${barWidth}px`,

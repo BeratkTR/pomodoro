@@ -8,7 +8,9 @@ const SessionBar = React.memo(({
   pomodoroLength, 
   breakLength, 
   currentSession, 
-  currentTimerState 
+  currentTimerState,
+  onSessionClick,
+  isHistorical 
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   
@@ -54,12 +56,19 @@ const SessionBar = React.memo(({
   let barClass = 'session-bar';
   let tooltipText = '';
   let barWidth = 30; // default width
+  let hasNotes = false;
+  let sessionInfo = null;
+  let isCurrent = false;
   
   if (historyIndex < sessionHistory.length) {
     const sessionType = sessionHistory[historyIndex].type;
     const sessionData = sessionHistory[historyIndex];
     const isPartial = sessionData.isPartial;
     barClass += ` completed ${sessionType}${isPartial ? ' partial' : ''}`;
+    
+    // Check if this session has notes (only for pomodoro sessions)
+    hasNotes = sessionData.type === 'pomodoro' && !!(sessionData.notes && sessionData.notes.trim().length > 0);
+    sessionInfo = sessionData;
     
     // For completed sessions, use the actual duration that was completed
     // If duration is stored in session history, use that; otherwise fall back to current settings
@@ -68,8 +77,13 @@ const SessionBar = React.memo(({
     barWidth = calculateBarWidth(sessionDuration);
     console.log(`✅ Personal Stats Completed session ${sessionNum}: type=${sessionType}, actualDuration=${sessionDuration}min, tier=${getTierDescription(sessionDuration)}, width=${barWidth}px, isPartial=${isPartial}`);
   } else if (sessionNum === currentSession) {
+    isCurrent = true;
     // Current session - show as yellow/pending with pulse
     barClass += ' current';
+    
+    // Check if current session has notes (only for pomodoro mode)
+    // Note: We can't access currentUser here, so hasNotes will be false for current session in this modal
+    // This is okay since the modal is for historical/stats view, not for live editing
     
     // Calculate elapsed time for current session
     if (currentTimerState) {
@@ -97,6 +111,32 @@ const SessionBar = React.memo(({
     console.log(`⏳ Personal Stats Pending session ${sessionNum}: expected=${pomodoroLength}min (30% = ${pendingDuration.toFixed(1)}min), tier=${getTierDescription(pendingDuration)}, width=${barWidth}px`);
   }
   
+  const handleClick = () => {
+    // Only allow clicking on pomodoro sessions (not breaks) for notes
+    const isPomodoro = sessionInfo?.type === 'pomodoro';
+    
+    if (!isPomodoro) {
+      console.log('⏸️ Ignoring click on break session in PersonalStatsModal - notes only for pomodoros');
+      return;
+    }
+    
+    if (onSessionClick) {
+      // Allow clicking on all pomodoro sessions (both today and historical)
+      // Historical sessions will open as read-only in the parent
+      if (historyIndex < sessionHistory.length) {
+        // Completed pomodoro session
+        console.log('📝 PersonalStatsModal - Opening session:', { historyIndex, sessionInfo, isHistorical });
+        onSessionClick(historyIndex, sessionInfo, false, false);
+      } else if (isCurrent && !isHistorical) {
+        // Current session (only in today's view)
+        onSessionClick(historyIndex, sessionInfo || {}, true, false);
+      }
+    }
+  };
+
+  // Pomodoro completed sessions are always clickable (even in history)
+  const isClickableSession = sessionInfo?.type === 'pomodoro' && historyIndex < sessionHistory.length;
+  
   return (
     <div 
       className="session-bar-container"
@@ -108,10 +148,13 @@ const SessionBar = React.memo(({
         style={{ 
           width: `${barWidth}px`,
           minWidth: `${barWidth}px`,
-          maxWidth: `${barWidth}px`
+          maxWidth: `${barWidth}px`,
+          cursor: isClickableSession ? 'pointer' : 'default'
         }}
+        onClick={handleClick}
       >
         <div className="bar-fill"></div>
+        {hasNotes && <div className="notes-indicator" title="Has notes">📝</div>}
       </div>
       {showTooltip && (
         <div className="session-tooltip">
@@ -122,7 +165,7 @@ const SessionBar = React.memo(({
   );
 });
 
-const PersonalStatsModal = ({ onClose, currentUser }) => {
+const PersonalStatsModal = ({ onClose, currentUser, onSessionClick }) => {
   // State to force re-render for live updates
   const [, setUpdateTrigger] = useState(0);
   
@@ -321,6 +364,8 @@ const PersonalStatsModal = ({ onClose, currentUser }) => {
               breakLength={breakLength}
               currentSession={effectiveCurrentSession}
               currentTimerState={isHistorical ? null : currentUser?.timerState}
+              onSessionClick={onSessionClick}
+              isHistorical={isHistorical}
             />
           );
         })}

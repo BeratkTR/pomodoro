@@ -7,7 +7,8 @@ class SocketService {
     this.listeners = new Map();
   }
 
-  connect(serverUrl = 'https://api.beratkaragol.xyz') {
+  // connect(serverUrl = 'https://api.beratkaragol.xyz') {
+  connect(serverUrl = 'http://localhost:5001') {
     console.log('🔌 socketService.connect() called with URL:', serverUrl);
     
     if (this.socket && this.isConnected) {
@@ -274,9 +275,10 @@ class SocketService {
   }
 
   // Session notes methods
-  updateSessionNotes(sessionIndex, notes) {
+  updateSessionNotes(sessionIndex, notes, isCurrent = false) {
     if (this.socket && this.isConnected) {
-      this.socket.emit('update_session_notes', { sessionIndex, notes });
+      console.log('🚀 Emitting update_session_notes:', { sessionIndex, notes: notes.substring(0, 50), isCurrent });
+      this.socket.emit('update_session_notes', { sessionIndex, notes, isCurrent });
     }
   }
 
