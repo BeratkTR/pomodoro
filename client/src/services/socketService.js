@@ -72,7 +72,9 @@ class SocketService {
       const allEvents = ['room_joined', 'user_joined', 'user_disconnected', 'user_reconnected', 'user_left', 
                         'user_timer_update', 'user_timer_complete', 'user_settings_updated',
                         'user_name_updated', 'user_updated', 'session_notes_updated', 'chat_message', 'chat_history', 
-                        'message_status_update', 'user_typing_start', 'user_typing_stop', 'error'];
+                        'message_status_update', 'user_typing_start', 'user_typing_stop',
+                        'video_call_request', 'video_call_accepted', 'video_call_rejected', 
+                        'video_offer', 'video_answer', 'ice_candidate', 'video_call_ended', 'error'];
       
       allEvents.forEach(event => {
         this.socket.removeAllListeners(event);
@@ -150,6 +152,35 @@ class SocketService {
 
     this.socket.on('user_typing_stop', (data) => {
       this.emit('user_typing_stop', data);
+    });
+
+    // Video call events
+    this.socket.on('video_call_request', (data) => {
+      this.emit('video_call_request', data);
+    });
+
+    this.socket.on('video_call_accepted', (data) => {
+      this.emit('video_call_accepted', data);
+    });
+
+    this.socket.on('video_call_rejected', (data) => {
+      this.emit('video_call_rejected', data);
+    });
+
+    this.socket.on('video_offer', (data) => {
+      this.emit('video_offer', data);
+    });
+
+    this.socket.on('video_answer', (data) => {
+      this.emit('video_answer', data);
+    });
+
+    this.socket.on('ice_candidate', (data) => {
+      this.emit('ice_candidate', data);
+    });
+
+    this.socket.on('video_call_ended', (data) => {
+      this.emit('video_call_ended', data);
     });
 
     // Error events
@@ -305,6 +336,49 @@ class SocketService {
   stopTyping() {
     if (this.socket && this.isConnected) {
       this.socket.emit('typing_stop');
+    }
+  }
+
+  // Video call methods
+  sendVideoCallRequest(toUserId) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('video_call_request', { toUserId });
+    }
+  }
+
+  acceptVideoCall(toUserId) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('video_call_accept', { toUserId });
+    }
+  }
+
+  rejectVideoCall(toUserId) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('video_call_reject', { toUserId });
+    }
+  }
+
+  sendVideoOffer(offer, toUserId) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('video_offer', { offer, toUserId });
+    }
+  }
+
+  sendVideoAnswer(answer, toUserId) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('video_answer', { answer, toUserId });
+    }
+  }
+
+  sendIceCandidate(candidate, toUserId) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('ice_candidate', { candidate, toUserId });
+    }
+  }
+
+  endVideoCall(toUserId) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('video_call_end', { toUserId });
     }
   }
 

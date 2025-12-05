@@ -6,6 +6,7 @@ import RoomJoinModal from './RoomJoinModal'
 // import SoundPermissionModal from './SoundPermissionModal'
 import TaskList from './TaskList'
 import ChatWidget from './ChatWidget'
+import VideoChat from './VideoChat'
 import PersonalStatsModal from './PersonalStatsModal'
 import SessionNotesModal from './SessionNotesModal'
 import { useAuth } from '../contexts/AuthContext'
@@ -726,6 +727,15 @@ function MainApp() {
           currentUser={currentUser}
           unreadCount={unreadCount}
           onMarkAsRead={handleMarkAsRead}
+        />
+      )}
+
+      {/* Video Chat - only show when in a room */}
+      {currentRoom && (
+        <VideoChat
+          currentRoom={currentRoom}
+          currentUser={currentUser}
+          roomUsers={roomUsers}
         />
       )}
 

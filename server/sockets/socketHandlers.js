@@ -924,6 +924,145 @@ function initializeSocketHandlers(io, rooms, users) {
       // Send current music state to the requesting user
       socket.emit('room_music_update', room.getMusicState());
     });
+
+    // WebRTC Video Call Handlers ----------------------------------------------
+    socket.on('video_call_request', (data) => {
+      const user = users.get(socket.id);
+      if (!user) {
+        console.log('video_call_request: User not found');
+        return;
+      }
+
+      const room = rooms.get(user.roomId);
+      if (!room) {
+        console.log('video_call_request: Room not found');
+        return;
+      }
+
+      console.log(`📞 Video call request from ${user.name} to user ${data.toUserId}`);
+
+      // Find the target user in the room
+      const targetUser = Array.from(room.users.values()).find(u => u.id === data.toUserId);
+      if (targetUser && targetUser.socketId) {
+        io.to(targetUser.socketId).emit('video_call_request', {
+          fromUserId: user.id,
+          fromUserName: user.name
+        });
+      }
+    });
+
+    socket.on('video_call_accept', (data) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      console.log(`✅ Video call accepted by ${user.name}`);
+
+      // Find the caller
+      const targetUser = Array.from(room.users.values()).find(u => u.id === data.toUserId);
+      if (targetUser && targetUser.socketId) {
+        io.to(targetUser.socketId).emit('video_call_accepted', {
+          fromUserId: user.id,
+          fromUserName: user.name
+        });
+      }
+    });
+
+    socket.on('video_call_reject', (data) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      console.log(`❌ Video call rejected by ${user.name}`);
+
+      // Find the caller
+      const targetUser = Array.from(room.users.values()).find(u => u.id === data.toUserId);
+      if (targetUser && targetUser.socketId) {
+        io.to(targetUser.socketId).emit('video_call_rejected', {
+          fromUserId: user.id,
+          fromUserName: user.name
+        });
+      }
+    });
+
+    socket.on('video_offer', (data) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      console.log(`📨 Video offer from ${user.name} to user ${data.toUserId}`);
+
+      // Forward the offer to the target user
+      const targetUser = Array.from(room.users.values()).find(u => u.id === data.toUserId);
+      if (targetUser && targetUser.socketId) {
+        io.to(targetUser.socketId).emit('video_offer', {
+          offer: data.offer,
+          fromUserId: user.id
+        });
+      }
+    });
+
+    socket.on('video_answer', (data) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      console.log(`📨 Video answer from ${user.name} to user ${data.toUserId}`);
+
+      // Forward the answer to the target user
+      const targetUser = Array.from(room.users.values()).find(u => u.id === data.toUserId);
+      if (targetUser && targetUser.socketId) {
+        io.to(targetUser.socketId).emit('video_answer', {
+          answer: data.answer,
+          fromUserId: user.id
+        });
+      }
+    });
+
+    socket.on('ice_candidate', (data) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      console.log(`❄️ ICE candidate from ${user.name} to user ${data.toUserId}`);
+
+      // Forward the ICE candidate to the target user
+      const targetUser = Array.from(room.users.values()).find(u => u.id === data.toUserId);
+      if (targetUser && targetUser.socketId) {
+        io.to(targetUser.socketId).emit('ice_candidate', {
+          candidate: data.candidate,
+          fromUserId: user.id
+        });
+      }
+    });
+
+    socket.on('video_call_end', (data) => {
+      const user = users.get(socket.id);
+      if (!user) return;
+
+      const room = rooms.get(user.roomId);
+      if (!room) return;
+
+      console.log(`📴 Video call ended by ${user.name}`);
+
+      // Notify the other user
+      const targetUser = Array.from(room.users.values()).find(u => u.id === data.toUserId);
+      if (targetUser && targetUser.socketId) {
+        io.to(targetUser.socketId).emit('video_call_ended', {
+          fromUserId: user.id
+        });
+      }
+    });
   });
 }
 

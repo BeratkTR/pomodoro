@@ -41,8 +41,14 @@ class PersistenceManager {
         };
       }
       
-      await fs.writeFile(this.roomsFile, JSON.stringify(roomsData, null, 2));
-      console.log(`Saved ${Object.keys(roomsData).length} rooms to persistence`);
+      // Only write if there's data to save, or if the file doesn't exist yet
+      // This prevents accidentally wiping existing room data when memory is empty
+      if (Object.keys(roomsData).length > 0 || !(await this.fileExists(this.roomsFile))) {
+        await fs.writeFile(this.roomsFile, JSON.stringify(roomsData, null, 2));
+        console.log(`Saved ${Object.keys(roomsData).length} rooms to persistence`);
+      } else {
+        console.log('Skipping rooms save: no data in memory (existing data preserved)');
+      }
     } catch (error) {
       console.error('Error saving rooms:', error);
     }
@@ -79,10 +85,26 @@ class PersistenceManager {
         usersData[userId] = userData;
       }
       
-      await fs.writeFile(this.usersFile, JSON.stringify(usersData, null, 2));
-      console.log(`Saved ${Object.keys(usersData).length} users to persistence`);
+      // Only write if there's data to save, or if the file doesn't exist yet
+      // This prevents accidentally wiping existing user data when memory is empty
+      if (Object.keys(usersData).length > 0 || !(await this.fileExists(this.usersFile))) {
+        await fs.writeFile(this.usersFile, JSON.stringify(usersData, null, 2));
+        console.log(`Saved ${Object.keys(usersData).length} users to persistence`);
+      } else {
+        console.log('Skipping users save: no data in memory (existing data preserved)');
+      }
     } catch (error) {
       console.error('Error saving users:', error);
+    }
+  }
+
+  // Helper method to check if file exists
+  async fileExists(filePath) {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
     }
   }
 

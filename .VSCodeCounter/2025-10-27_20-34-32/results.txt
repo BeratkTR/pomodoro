@@ -1,0 +1,112 @@
+Date : 2025-10-27 20:34:32
+Directory : /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app
+Total : 66 files,  17538 codes, 1018 comments, 2267 blanks, all 20823 lines
+
+Languages
++----------------+------------+------------+------------+------------+------------+
+| language       | files      | code       | comment    | blank      | total      |
++----------------+------------+------------+------------+------------+------------+
+| JSON           |          4 |      4,813 |          0 |          4 |      4,817 |
+| JavaScript JSX |         24 |      4,468 |        366 |        652 |      5,486 |
+| JavaScript     |         27 |      4,144 |        582 |        916 |      5,642 |
+| CSS            |          6 |      3,796 |         70 |        622 |      4,488 |
+| Markdown       |          3 |        303 |          0 |         72 |        375 |
+| HTML           |          1 |         13 |          0 |          1 |         14 |
+| XML            |          1 |          1 |          0 |          0 |          1 |
++----------------+------------+------------+------------+------------+------------+
+
+Directories
++-----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                          | files      | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                             |         66 |     17,538 |      1,018 |      2,267 |     20,823 |
+| client                                                                                        |         47 |     12,853 |        612 |      1,569 |     15,034 |
+| client (Files)                                                                                |          6 |      3,137 |          2 |         13 |      3,152 |
+| client/src                                                                                    |         41 |      9,716 |        610 |      1,556 |     11,882 |
+| client/src (Files)                                                                            |          4 |      2,636 |         46 |        456 |      3,138 |
+| client/src/assets                                                                             |          1 |          1 |          0 |          0 |          1 |
+| client/src/components                                                                         |         25 |      5,555 |        389 |        801 |      6,745 |
+| client/src/contexts                                                                           |          1 |         73 |          1 |         17 |         91 |
+| client/src/services                                                                           |          4 |        699 |         64 |        150 |        913 |
+| client/src/utils                                                                              |          6 |        752 |        110 |        132 |        994 |
+| server                                                                                        |         19 |      4,685 |        406 |        698 |      5,789 |
+| server (Files)                                                                                |          6 |      2,143 |         21 |         91 |      2,255 |
+| server/models                                                                                 |          3 |        781 |        132 |        188 |      1,101 |
+| server/routes                                                                                 |          4 |        551 |         61 |        107 |        719 |
+| server/scripts                                                                                |          1 |         64 |          6 |         15 |         85 |
+| server/services                                                                               |          4 |        510 |         73 |        116 |        699 |
+| server/sockets                                                                                |          1 |        636 |        113 |        181 |        930 |
++-----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-----------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| filename                                                                                      | language       | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/README.md                               | Markdown       |          7 |          0 |          6 |         13 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/eslint.config.js                        | JavaScript     |         32 |          0 |          2 |         34 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/index.html                              | HTML           |         13 |          0 |          1 |         14 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/package-lock.json                       | JSON           |      3,037 |          0 |          1 |      3,038 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/package.json                            | JSON           |         31 |          0 |          1 |         32 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/App.css                             | CSS            |      2,534 |         45 |        439 |      3,018 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/App.jsx                             | JavaScript JSX |         35 |          1 |          7 |         43 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/assets/react.svg                    | XML            |          1 |          0 |          0 |          1 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/AdminPanel.jsx           | JavaScript JSX |        293 |          1 |         21 |        315 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/AuthPages.css            | CSS            |        227 |          1 |         30 |        258 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/AuthWrapper.jsx          | JavaScript JSX |         18 |          0 |          5 |         23 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/ChatWidget.css           | CSS            |        463 |         15 |         70 |        548 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/ChatWidget.jsx           | JavaScript JSX |        372 |         46 |         52 |        470 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/DeadTimeBar.jsx          | JavaScript JSX |         57 |          5 |         12 |         74 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/LoginPage.jsx            | JavaScript JSX |        114 |          1 |         20 |        135 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/LogoutModal.jsx          | JavaScript JSX |         36 |          0 |          5 |         41 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/MainApp.jsx              | JavaScript JSX |        611 |         95 |        106 |        812 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/MusicPlayer.css          | CSS            |        352 |          8 |         54 |        414 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/MusicPlayer.jsx          | JavaScript JSX |        253 |         13 |         30 |        296 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/Navbar.jsx               | JavaScript JSX |         67 |          1 |         10 |         78 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/PersonalStatsModal.jsx   | JavaScript JSX |        429 |         48 |         71 |        548 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/RoomJoinModal.jsx        | JavaScript JSX |        165 |          1 |         20 |        186 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/SessionNotesModal.css    | CSS            |        162 |          1 |         21 |        184 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/SessionNotesModal.jsx    | JavaScript JSX |         52 |          1 |          9 |         62 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/SessionProgress.jsx      | JavaScript JSX |        287 |         39 |         54 |        380 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/SettingsModal.jsx        | JavaScript JSX |        158 |          6 |         22 |        186 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/SignupPage.jsx           | JavaScript JSX |        156 |          1 |         24 |        181 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/SimpleMusicPlayer.jsx    | JavaScript JSX |        385 |         10 |         29 |        424 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/SoundPermissionModal.jsx | JavaScript JSX |         59 |         19 |          6 |         84 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/StudyPartners.jsx        | JavaScript JSX |        454 |         55 |         74 |        583 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/TaskList.jsx             | JavaScript JSX |        116 |          0 |         10 |        126 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/TimerSection.jsx         | JavaScript JSX |        187 |         21 |         32 |        240 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/components/UserDropdown.jsx         | JavaScript JSX |         82 |          1 |         14 |         97 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/contexts/AuthContext.jsx            | JavaScript JSX |         73 |          1 |         17 |         91 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/index.css                           | CSS            |         58 |          0 |          8 |         66 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/main.jsx                            | JavaScript JSX |          9 |          0 |          2 |         11 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/services/apiService.js              | JavaScript     |         48 |          4 |         11 |         63 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/services/authService.js             | JavaScript     |        122 |          4 |         26 |        152 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/services/socketService.js           | JavaScript     |        254 |         24 |         56 |        334 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/services/soundService.js            | JavaScript     |        275 |         32 |         57 |        364 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/utils/deadTimeUtils.js              | JavaScript     |        129 |         25 |         24 |        178 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/utils/faviconManager.js             | JavaScript     |         81 |          9 |         18 |        108 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/utils/socketListeners.js            | JavaScript     |        351 |         51 |         51 |        453 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/utils/timeUtils.js                  | JavaScript     |         18 |          4 |          6 |         28 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/utils/useScreenWake.js              | JavaScript     |         99 |         12 |         19 |        130 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/src/utils/useWakeLock.js                | JavaScript     |         74 |          9 |         14 |         97 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/client/vite.config.js                          | JavaScript     |         17 |          2 |          2 |         21 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/PERSISTENCE.md                          | Markdown       |        176 |          0 |         38 |        214 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/README.md                               | Markdown       |        120 |          0 |         28 |        148 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/config.js                               | JavaScript     |         31 |          3 |          0 |         34 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/models/Room.js                          | JavaScript     |        273 |         33 |         67 |        373 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/models/User.js                          | JavaScript     |        502 |         99 |        120 |        721 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/models/index.js                         | JavaScript     |          6 |          0 |          1 |          7 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/package-lock.json                       | JSON           |      1,714 |          0 |          1 |      1,715 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/package.json                            | JSON           |         31 |          0 |          1 |         32 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/routes/admin.js                         | JavaScript     |        307 |         35 |         53 |        395 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/routes/api.js                           | JavaScript     |         93 |          5 |         17 |        115 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/routes/auth.js                          | JavaScript     |        126 |         18 |         32 |        176 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/routes/index.js                         | JavaScript     |         25 |          3 |          5 |         33 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/scripts/test-persistence.js             | JavaScript     |         64 |          6 |         15 |         85 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/server.js                               | JavaScript     |         71 |         18 |         23 |        112 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/services/PersistenceManager.js          | JavaScript     |        168 |         18 |         27 |        213 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/services/RoomManager.js                 | JavaScript     |         66 |          9 |         17 |         92 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/services/TimerStateRecovery.js          | JavaScript     |         97 |         13 |         25 |        135 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/services/UserStore.js                   | JavaScript     |        179 |         33 |         47 |        259 |
+| /Users/beratkaragol/zMY_PROJECTS/zpomodoro-app/server/sockets/socketHandlers.js               | JavaScript     |        636 |        113 |        181 |        930 |
+| Total                                                                                         |                |     17,538 |      1,018 |      2,267 |     20,823 |
++-----------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
