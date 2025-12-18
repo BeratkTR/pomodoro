@@ -15,7 +15,7 @@ body {
   justify-content: center;
   align-items: flex-start;
 
-  background-image: url('/src/foto.jpeg'); 
+  background-image: url('./assets/bg.jpeg'); 
   background-size: cover;       /* make it cover the whole viewport */
   background-position: center 40%;  /* center the image */
   background-repeat: no-repeat;
