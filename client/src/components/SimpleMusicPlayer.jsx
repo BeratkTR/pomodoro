@@ -9,11 +9,11 @@ const SimpleMusicPlayer = () => {
   const [duration, setDuration] = useState(0);
 
   const [presetUrls] = useState([
-    { name: 'Beethoven - Moonlight Sonata', url: '/musics/Beethoven%20-%20Moonlight%20Sonata.mp3' },
-    { name: 'Fire', url: '/musics/Fire.mp3' },
-    { name: 'Forest', url: '/musics/Forest.mp3' },
-    { name: 'Rain', url: '/musics/Rain.mp3' },
-    { name: 'White Noise', url: '/musics/White%20Noise.mp3' }
+    { name: 'Beethoven - Moonlight Sonata', url: './musics/Beethoven%20-%20Moonlight%20Sonata.mp3' },
+    { name: 'Fire', url: './musics/Fire.mp3' },
+    { name: 'Forest', url: './musics/Forest.mp3' },
+    { name: 'Rain', url: './musics/Rain.mp3' },
+    { name: 'White Noise', url: './musics/White%20Noise.mp3' }
   ]);
 
   const audioRef = useRef(null);

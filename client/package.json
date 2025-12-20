@@ -1,8 +1,9 @@
 {
   "name": "client2",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.2",
   "main": "main.cjs",
+  "type": "module",
   "scripts": {
     "dev": "vite",  
     "build": "vite build",
@@ -13,7 +14,8 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "build:win": "vite build && electron-builder --win"
+    "build:win": "vite build && electron-builder --win",
+    "build:mac": "vite build && electron-builder --mac"
   },
   "build": {
     "appId": "com.pomo.Pomodoro",
@@ -22,8 +24,11 @@
       "output": "dist_electron"
     },
     "win": {
-      "target": "nsis",
-      "icon": "public/icon.ico" 
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity"
     },
     "files": [
       "dist/**/*",

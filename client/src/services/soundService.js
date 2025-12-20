@@ -1,8 +1,8 @@
 // Import audio files
-import messageSound from '../assets/message.mp3'
-import clockSound from '../assets/clock.mp3'
-import onSound from '../assets/on.mp3'
-import offSound from '../assets/off.mp3'
+// import messageSound from '../assets/message.mp3'
+// import clockSound from '../assets/clock.mp3'
+// import onSound from '../assets/on.mp3'
+// import offSound from '../assets/off.mp3'
 
 class SoundService {
   constructor() {
@@ -20,10 +20,10 @@ class SoundService {
   initializeSounds() {
     try {
       // Use imported audio files from assets
-      this.sounds.message = new Audio(messageSound)
-      this.sounds.timerEnd = new Audio(clockSound)
-      this.sounds.partnerJoin = new Audio(onSound)
-      this.sounds.partnerLeave = new Audio(offSound)
+      this.sounds.message = new Audio('message.mp3')
+      this.sounds.timerEnd = new Audio('clock.mp3')
+      this.sounds.partnerJoin = new Audio('on.mp3')
+      this.sounds.partnerLeave = new Audio('off.mp3')
       
       // Set initial volume and preload
       Object.values(this.sounds).forEach(sound => {
