@@ -7,6 +7,7 @@ yarn-error.log*
 # Client build output
 client/build/
 client/dist/
+client/dist_electron/
 
 # Server build output (if any)
 server/build/
