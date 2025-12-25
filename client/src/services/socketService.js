@@ -7,8 +7,8 @@ class SocketService {
     this.listeners = new Map();
   }
 
-  connect(serverUrl = 'https://api.beratkaragol.xyz') {
-  // connect(serverUrl = 'http://localhost:5001') {
+  // connect(serverUrl = 'https://api.beratkaragol.xyz') {
+  connect(serverUrl = 'http://localhost:5001') {
     console.log('🔌 socketService.connect() called with URL:', serverUrl);
     
     if (this.socket && this.isConnected) {

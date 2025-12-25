@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import authService from '../services/authService';
 
 const AdminPanel = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState('rooms');
@@ -11,16 +12,40 @@ const AdminPanel = ({ onClose }) => {
     fetchAdminData();
   }, []);
 
+  // Helper function to get authentication token
+  const getAuthToken = () => {
+    let token = authService.getToken();
+    if (!token) {
+      token = localStorage.getItem('authToken');
+    }
+    return token;
+  };
+
   const fetchAdminData = async () => {
     try {
       setLoading(true);
       console.log('Fetching admin data...');
+      
+      const token = getAuthToken();
+      
+      if (!token) {
+        console.error('No authentication token found. Please log in first.');
+        alert('Authentication required. Please log in to access admin panel.');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Using token:', token.substring(0, 20) + '...');
+      
       const response = await fetch('https://api.beratkaragol.xyz/api/admin/data', {
         headers: {
-          'X-Admin': 'true'
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
+      
       console.log('Admin data response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
         console.log('Admin data received:', data);
@@ -28,12 +53,21 @@ const AdminPanel = ({ onClose }) => {
         setUsers(data.users || []);
         console.log('Set rooms:', data.rooms?.length, 'Set users:', data.users?.length);
       } else {
-        console.error('Failed to fetch admin data - status:', response.status);
         const errorText = await response.text();
+        console.error('Failed to fetch admin data - status:', response.status);
         console.error('Error response:', errorText);
+        
+        if (response.status === 401) {
+          alert('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          alert('Access denied. You do not have admin privileges.');
+        } else {
+          alert(`Failed to load admin data: ${errorText}`);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
+      alert('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -43,10 +77,16 @@ const AdminPanel = ({ onClose }) => {
     if (!confirm('Are you sure you want to delete this room?')) return;
     
     try {
+      const token = getAuthToken();
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        return;
+      }
       const response = await fetch(`https://api.beratkaragol.xyz/api/admin/rooms/${roomId}`, {
         method: 'DELETE',
         headers: {
-          'X-Admin': 'true'
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       if (response.ok) {
@@ -65,10 +105,16 @@ const AdminPanel = ({ onClose }) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     
     try {
+      const token = getAuthToken();
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        return;
+      }
       const response = await fetch(`https://api.beratkaragol.xyz/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
-          'X-Admin': 'true'
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       if (response.ok) {
@@ -86,11 +132,16 @@ const AdminPanel = ({ onClose }) => {
   const updateUser = async (userId, updates) => {
     try {
       console.log('Updating user:', userId, 'with data:', updates);
+      const token = getAuthToken();
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        return;
+      }
       const response = await fetch(`https://api.beratkaragol.xyz/api/admin/users/${userId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin': 'true'
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(updates)
       });

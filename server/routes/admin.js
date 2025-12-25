@@ -1,16 +1,36 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const userStore = require('../services/UserStore');
 
-// Admin middleware to check if request has admin privileges
+// JWT secret (must match the one in auth.js)
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+
+// Admin user ID that has access to admin routes
+const ADMIN_USER_ID = 'auth_1764962440290_n04znh8jx';
+
+// Admin middleware to check if request has admin privileges via JWT
 const requireAdmin = (req, res, next) => {
-  // For now, we'll just check if the request includes admin header
-  // In a real application, you'd verify admin JWT token or session
-  const isAdmin = req.headers['x-admin'] === 'true';
-  if (!isAdmin) {
-    return res.status(403).json({ error: 'Admin access required' });
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
   }
-  next();
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
+
+    // Check if the user ID matches the admin user ID
+    if (user.userId !== ADMIN_USER_ID) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    req.user = user;
+    next();
+  });
 };
 
 // Get all rooms and users data
