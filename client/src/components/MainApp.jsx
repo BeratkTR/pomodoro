@@ -731,7 +731,7 @@ function MainApp() {
       )}
 
       {/* Video Chat - only show when in a room */}
-      {currentRoom && (
+      {false && currentRoom && (
         <VideoChat
           currentRoom={currentRoom}
           currentUser={currentUser}

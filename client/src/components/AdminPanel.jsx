@@ -37,7 +37,7 @@ const AdminPanel = ({ onClose }) => {
       
       console.log('Using token:', token.substring(0, 20) + '...');
       
-      const response = await fetch('https://api.beratkaragol.xyz/api/admin/data', {
+      const response = await fetch('https://api.beratkaragol.dev/api/admin/data', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -82,7 +82,7 @@ const AdminPanel = ({ onClose }) => {
         alert('Authentication required. Please log in again.');
         return;
       }
-      const response = await fetch(`https://api.beratkaragol.xyz/api/admin/rooms/${roomId}`, {
+      const response = await fetch(`https://api.beratkaragol.dev/api/admin/rooms/${roomId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -110,7 +110,7 @@ const AdminPanel = ({ onClose }) => {
         alert('Authentication required. Please log in again.');
         return;
       }
-      const response = await fetch(`https://api.beratkaragol.xyz/api/admin/users/${userId}`, {
+      const response = await fetch(`https://api.beratkaragol.dev/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -137,7 +137,7 @@ const AdminPanel = ({ onClose }) => {
         alert('Authentication required. Please log in again.');
         return;
       }
-      const response = await fetch(`https://api.beratkaragol.xyz/api/admin/users/${userId}`, {
+      const response = await fetch(`https://api.beratkaragol.dev/api/admin/users/${userId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

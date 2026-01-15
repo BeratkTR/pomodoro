@@ -2,6 +2,7 @@ import React from 'react'
 import AuthWrapper from './components/AuthWrapper'
 import MainApp from './components/MainApp'
 import SimpleMusicPlayer from './components/SimpleMusicPlayer'
+import SnowEffect from './components/SnowEffect'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import './App.css'
 
@@ -25,6 +26,7 @@ function ProtectedApp() {
 
   return (
     <>
+      <SnowEffect />
       <MainApp />
       <SimpleMusicPlayer />
     </>

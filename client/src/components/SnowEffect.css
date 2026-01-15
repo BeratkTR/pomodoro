@@ -1,0 +1,99 @@
+.snow-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.snowflake {
+  position: absolute;
+  top: -100px; /* Start well above the viewport */
+  color: white;
+  font-size: 1.5em;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+  animation: snowfall linear infinite;
+  user-select: none;
+  opacity: 0; /* Start invisible, will be animated */
+}
+
+@keyframes snowfall {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(calc(100vh + 100px)) translateX(50px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Vary the horizontal drift for more natural movement */
+.snowflake:nth-child(odd) {
+  animation-name: snowfall-left;
+}
+
+.snowflake:nth-child(even) {
+  animation-name: snowfall-right;
+}
+
+@keyframes snowfall-left {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(calc(100vh + 100px)) translateX(-30px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes snowfall-right {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(calc(100vh + 100px)) translateX(30px) rotate(-360deg);
+    opacity: 0;
+  }
+}

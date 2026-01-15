@@ -11,9 +11,9 @@ yarn-error.log
 
 .next
 out
-dist
 build
 .cache
+# dist should NOT be ignored - it's the build output that Vercel deploys
 
 .DS_Store
 Thumbs.db
@@ -27,6 +27,7 @@ Thumbs.db
 *.mov
 *.avi
 *.mkv
+# *.mp3 - removed because music files are needed in the build
 *.zip
 *.tar
 *.gz
@@ -35,3 +36,6 @@ Thumbs.db
 *.psd
 *.ai
 *.iso
+
+# Electron build output (not needed for Vercel)
+dist_electron

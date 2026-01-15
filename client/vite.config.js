@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '0.0.0.0',
-    allowedHosts: ['beratkaragol.xyz', 'www.beratkaragol.xyz'],
+    allowedHosts: ['beratkaragol.dev', 'www.beratkaragol.dev'],
     proxy: {
       '/api': {
         target: 'http://localhost:5001',
