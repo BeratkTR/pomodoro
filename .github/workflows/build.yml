@@ -34,5 +34,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            client/ /*.exe
+            client/dist_electron/*.exe
             client/dist_electron/*.blockmap

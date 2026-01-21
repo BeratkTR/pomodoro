@@ -16,7 +16,7 @@ module.exports = {
     defaultBreak: 10,
     // Auto-start settings
     defaultAutoStartBreaks: false,
-    defaultAutoStartPomodoros: false
+    defaultAutoStartPomodoros: false  
   },
   room: {
     // Room cleanup settings
